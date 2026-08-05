@@ -250,5 +250,33 @@
     ],
     "prestige": 0,
     "lastSeen": 1785920233082
+  },
+  "vyjw1sl410o": {
+    "deviceId": "vyjw1sl410o",
+    "name": "OPERATIVE",
+    "totalXp": 0,
+    "stats": {
+      "kills": 0,
+      "deaths": 0,
+      "assists": 0,
+      "headshots": 0,
+      "wins": 0,
+      "losses": 0,
+      "games": 0,
+      "score": 0,
+      "timePlayed": 0,
+      "bestStreak": 0
+    },
+    "loadout": {
+      "primary": "m4",
+      "secondary": "pistol"
+    },
+    "unlockedWeapons": [
+      "m4",
+      "pistol",
+      "knife"
+    ],
+    "prestige": 0,
+    "lastSeen": 1785921523814
   }
 }

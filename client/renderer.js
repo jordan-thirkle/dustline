@@ -228,6 +228,54 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   ground.receiveShadow = true;
   worldGroup.add(ground);
 
+  // Material zone overlay — packed-dirt lanes + stone patches + dust drifts,
+  // so the ground reads as distinct materials, not one beige sheet.
+  const zoneCanvas = document.createElement('canvas');
+  zoneCanvas.width = zoneCanvas.height = 512;
+  const zg = zoneCanvas.getContext('2d');
+  zg.fillStyle = 'rgba(0,0,0,0)';
+  zg.clearRect(0, 0, 512, 512);
+  // large soft dirt zones (warmer, lower value)
+  for (let i = 0; i < 26; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512, r = 40 + Math.random() * 120;
+    const grd = zg.createRadialGradient(x, y, 4, x, y, r);
+    const dark = 0.06 + Math.random() * 0.08;
+    grd.addColorStop(0, `rgba(70,58,42,${dark})`);
+    grd.addColorStop(1, 'rgba(70,58,42,0)');
+    zg.fillStyle = grd;
+    zg.beginPath(); zg.arc(x, y, r, 0, Math.PI * 2); zg.fill();
+  }
+  // worn traffic lanes (darker, linear)
+  for (let i = 0; i < 8; i++) {
+    zg.strokeStyle = `rgba(60,50,38,${0.05 + Math.random() * 0.06})`;
+    zg.lineWidth = 18 + Math.random() * 40;
+    zg.beginPath();
+    const x = Math.random() * 512, y = Math.random() * 512;
+    zg.moveTo(x, y);
+    zg.lineTo(x + (Math.random() - 0.5) * 300, y + (Math.random() - 0.5) * 300);
+    zg.stroke();
+  }
+  // lighter dust drifts
+  for (let i = 0; i < 18; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512, r = 30 + Math.random() * 80;
+    const grd = zg.createRadialGradient(x, y, 2, x, y, r);
+    grd.addColorStop(0, 'rgba(180,165,135,0.10)');
+    grd.addColorStop(1, 'rgba(180,165,135,0)');
+    zg.fillStyle = grd;
+    zg.beginPath(); zg.arc(x, y, r, 0, Math.PI * 2); zg.fill();
+  }
+  const zoneTex = new THREE.CanvasTexture(zoneCanvas);
+  zoneTex.wrapS = zoneTex.wrapT = THREE.RepeatWrapping;
+  zoneTex.repeat.set(6, 6);
+  const zones = new THREE.Mesh(
+    new THREE.PlaneGeometry(map.bounds[2] * 2 + 40, map.bounds[3] * 2 + 40),
+    new THREE.MeshStandardMaterial({ map: zoneTex, transparent: true, roughness: 0.9, depthWrite: false })
+  );
+  zones.rotation.x = -Math.PI / 2;
+  zones.position.y = 0.01;
+  zones.receiveShadow = true;
+  worldGroup.add(zones);
+
   // Cast shadows — height-derived skewed quads with DISTANCE FALLOFF
   // (critic r13: dark near caster, lighter farther — not constant opacity).
   const sunDir = new THREE.Vector3(sun.position.x, 0, sun.position.z).normalize();
