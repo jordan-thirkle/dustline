@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DUSTLINE — Gauntlet Loop Progress</title>
+<style>
+  :root { --bg: #0d0c0a; --panel: #16140f; --line: #d6c6a8; --muted: rgba(214,198,168,.5); --good: #7fae6a; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--line); font: 14px/1.5 "Helvetica Neue", Arial, sans-serif; }
+  header { padding: 28px 32px; border-bottom: 1px solid rgba(214,198,168,.15); }
+  header h1 { letter-spacing: 8px; font-size: 22px; font-weight: 800; }
+  header .sub { color: var(--muted); letter-spacing: 3px; font-size: 11px; margin-top: 4px; text-transform: uppercase; }
+  .status { display: inline-block; margin-left: 14px; padding: 3px 10px; border: 1px solid var(--good); color: var(--good); font-size: 10px; letter-spacing: 2px; }
+  main { padding: 24px 32px; display: grid; gap: 22px; max-width: 1400px; margin: 0 auto; }
+  section h2 { font-size: 13px; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid rgba(214,198,168,.12); padding: 14px; }
+  .card img { width: 100%; display: block; margin-bottom: 10px; border: 1px solid rgba(214,198,168,.1); }
+  .card .name { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+  .card .note { color: var(--muted); font-size: 11px; margin-top: 4px; }
+  .rounds { display: grid; gap: 10px; }
+  .round { background: var(--panel); border-left: 3px solid var(--line); padding: 12px 16px; }
+  .round .r { font-size: 11px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; }
+  .round .verdict { font-size: 13px; margin-top: 6px; }
+  .round .verdict b { color: var(--good); }
+  .round .verdict .fail { color: #c2452c; }
+  a { color: var(--line); }
+  .footer { color: var(--muted); font-size: 11px; letter-spacing: 2px; padding: 20px 32px; border-top: 1px solid rgba(214,198,168,.1); }
+</style>
+</head>
+<body>
+<header>
+  <h1>DUSTLINE <span class="status">GAUNTLET LOOP — LIVE</span></h1>
+  <div class="sub">Sun-baked military skirmish FPS · Three.js · built by fan-out + harsh critic</div>
+</header>
+<main>
+  <section>
+    <h2>Current Frames (round 7)</h2>
+    <div class="cards">
+      <div class="card"><img src="/shots/plaza.png" alt="plaza"><div class="name">Plaza</div></div>
+      <div class="card"><img src="/shots/market.png" alt="market"><div class="name">Market</div></div>
+      <div class="card"><img src="/shots/tower.png" alt="tower"><div class="name">Tower</div></div>
+      <div class="card"><img src="/shots/alley.png" alt="alley"><div class="name">Alley</div></div>
+      <div class="card"><img src="/shots/gun.png" alt="gun"><div class="name">Weapon Viewmodel</div></div>
+    </div>
+  </section>
+  <section>
+    <h2>Loop History</h2>
+    <div class="rounds">
+      <div class="round"><div class="r">Round 1</div><div class="verdict"><b>0/5 pass</b> — no directional sun, ungrounded geometry, primitive weapon</div></div>
+      <div class="round"><div class="r">Round 2</div><div class="verdict"><b>0/5 pass</b> — sun rig + pavement landed, but no value hierarchy, contact, or material response</div></div>
+      <div class="round"><div class="r">Round 3</div><div class="verdict"><b>0/5 pass</b> — material-by-kind, footprint shadows, M4 construction cues, market prop kit, tower rebuild</div></div>
+      <div class="round"><div class="r">Round 4</div><div class="verdict"><b>0/5 pass</b> — exposure 1.35, crushed fill, harder shadow edges → lighting authority</div></div>
+      <div class="round"><div class="r">Round 5</div><div class="verdict"><b>0/5 pass</b> — sky bounce for readable shadow interiors, recessed windows, M4 weight</div></div>
+      <div class="round"><div class="r">Round 6</div><div class="verdict"><b>0/5 pass</b> — sky bounce→fill, wall roughness maps, alley tactical blockers (pipes, cables, balcony, focal crates)</div></div>
+      <div class="round"><div class="r">Round 7</div><div class="verdict"><b>pending</b> — critic grading latest frames</div></div>
+    </div>
+  </section>
+  <section>
+    <h2>Play It</h2>
+    <p style="color:var(--muted)">Run <code>node server/index.js</code> + <code>npm run dev</code>, open <a href="http://localhost:4173">localhost:4173</a>, click DEPLOY. Multiplayer, 5 modes, XP, unlocks, loadouts, persistence.</p>
+  </section>
+</main>
+<div class="footer">DUSTLINE · built with the Gauntlet Loop · everything procedural, zero assets · repo: /Users/jordanthirkle/repos/dustline</div>
+</body>
+</html>
