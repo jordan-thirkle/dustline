@@ -3,6 +3,8 @@
 // screenshot QA (gauntlet critic needs real pixels from a known camera).
 import * as THREE from 'three';
 import { MAPS_DATA, aabbs } from '../shared/map.js';
+import { propKit } from './props.js';
+import { buildTower, buildAlleyProps, removeOldTower } from './structures.js';
 
 export const QUALITY = {
   low: { shadows: false, sunShadowMap: 1024, fxaa: false, dust: 0.4, dpr: 1, pop: 120 },
@@ -310,6 +312,14 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
 
   // Distant "city" skyline silhouette (cheap, readable depth)
   addSkyline(worldGroup, map.bounds, light.fog);
+
+  // Authored structures + market kit (gauntlet round 3)
+  if (mapId === 'dustline') {
+    removeOldTower(map, worldGroup);
+    buildTower(map, worldGroup);
+    buildAlleyProps(map, worldGroup);
+    worldGroup.add(propKit(map));
+  }
 
   // Dust particles (subtle, sunlit)
   const dust = createDust(scene, map.dust, quality.dust);
