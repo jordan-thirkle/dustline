@@ -18,5 +18,7 @@
 - ESM with .js extensions everywhere. Static server (python http.server), no bundler — import map maps 'three' to /vendor/three.module.js.
 
 ## Workflow
+- Read `WORKFLOW.md` before multi-file game, UI, deployment, or public-launch work.
+- Combine Genex-inspired public project packaging with the Gauntlet Loop: playable URL, source/remix scaffold, visible receipts, independent critic, and repeated evidence-backed iteration.
 - Run the server + static server, capture screenshots with node tools/cdp-shot.js --cam=<view>, feed to critic, iterate.
 - Keep the client/server data contracts in shared/protocol.js in sync.

@@ -24,6 +24,10 @@ Open http://localhost:4173, click **DEPLOY**, and fight a full bot match. Multip
 - **src/main.js** — client boot + wiring.
 - **tools/** — `cdp-shot.js` headless-Chrome screenshot harness (the gauntlet critic's eyes), `shot.js`.
 
+## Public project workflow
+
+DUSTLINE follows `WORKFLOW.md`, combining a Genex-inspired public project surface with the Gauntlet Loop: build in parallel, publish receipts, judge real output independently, and iterate.
+
 ## The Gauntlet Loop (how this was built)
 
 1. **Goal + bar**: match a real Call of Duty frame, blind A/B.
