@@ -228,49 +228,18 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   ground.receiveShadow = true;
   worldGroup.add(ground);
 
-  // Cast shadows — derived from object HEIGHT + one sun vector (critic r12):
-  // each prop throws a skewed quad along the sun axis, length ∝ height,
-  // opacity falling with distance. Contact stays tight + separate.
+  // Cast shadows — height-derived skewed quads with DISTANCE FALLOFF
+  // (critic r13: dark near caster, lighter farther — not constant opacity).
   const sunDir = new THREE.Vector3(sun.position.x, 0, sun.position.z).normalize();
   const sunElev = sun.position.y / Math.hypot(sun.position.x, sun.position.y, sun.position.z);
   const shadowGroup = new THREE.Group();
-  map.objects.forEach((o) => {
-    if (o.kind === 'building') return; // buildings get the long cast below
-    // projected shadow length from height + sun elevation
-    const len = o.h * (0.35 + (1 - sunElev) * 2.2) * (o.kind === 'tower' ? 2.2 : 1);
-    const perp = new THREE.Vector3(-sunDir.z, 0, sunDir.x);
-    const sw = o.w * 1.05, sd = o.d * 1.05;
-    // skew quad: footprint corners pushed along sunDir by len
-    const hw = sw / 2, hd = sd / 2;
-    const cxs = [o.x - hw, o.x + hw, o.x + hw, o.x - hw];
-    const czs = [o.z - hd, o.z - hd, o.z + hd, o.z + hd];
-    const cxe = [o.x - hw + sunDir.x * len, o.x + hw + sunDir.x * len, o.x + hw + sunDir.x * len, o.x - hw + sunDir.x * len];
-    const cze = [o.z - hd + sunDir.z * len, o.z - hd + sunDir.z * len, o.z + hd + sunDir.z * len, o.z + hd + sunDir.z * len];
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute([
-      cxs[0], 0.03, czs[0],  cxe[0], 0.03, cze[0],  cxe[1], 0.03, cze[1],
-      cxs[0], 0.03, czs[0],  cxe[1], 0.03, cze[1],  cxs[1], 0.03, czs[1],
-      cxs[1], 0.03, czs[1],  cxe[1], 0.03, cze[1],  cxe[2], 0.03, cze[2],
-      cxs[1], 0.03, czs[1],  cxe[2], 0.03, cze[2],  cxs[2], 0.03, czs[2],
-      cxs[2], 0.03, czs[2],  cxe[2], 0.03, cze[2],  cxe[3], 0.03, cze[3],
-      cxs[2], 0.03, czs[2],  cxe[3], 0.03, cze[3],  cxs[3], 0.03, czs[3],
-      cxs[3], 0.03, czs[3],  cxe[3], 0.03, cze[3],  cxe[0], 0.03, cze[0],
-      cxs[3], 0.03, czs[3],  cxe[0], 0.03, cze[0],  cxs[0], 0.03, czs[0],
-    ]), 3);
-    const cast = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x0d0c0a, transparent: true, opacity: 0.3, depthWrite: false }));
-    shadowGroup.add(cast);
-  });
-  // buildings: long low-opacity cast wedges
-  map.objects.forEach((o) => {
-    if (o.kind !== 'building') return;
-    const len = o.h * (0.3 + (1 - sunElev) * 1.8);
+  const buildCast = (o, len, baseOp, isTower) => {
     const hw = o.w / 2, hd = o.d / 2;
     const cxs = [o.x - hw, o.x + hw, o.x + hw, o.x - hw];
     const czs = [o.z - hd, o.z - hd, o.z + hd, o.z + hd];
     const cxe = [o.x - hw + sunDir.x * len, o.x + hw + sunDir.x * len, o.x + hw + sunDir.x * len, o.x - hw + sunDir.x * len];
     const cze = [o.z - hd + sunDir.z * len, o.z - hd + sunDir.z * len, o.z + hd + sunDir.z * len, o.z + hd + sunDir.z * len];
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute([
+    const pos = new Float32Array([
       cxs[0], 0.03, czs[0],  cxe[0], 0.03, cze[0],  cxe[1], 0.03, cze[1],
       cxs[0], 0.03, czs[0],  cxe[1], 0.03, cze[1],  cxs[1], 0.03, czs[1],
       cxs[1], 0.03, czs[1],  cxe[1], 0.03, cze[1],  cxe[2], 0.03, cze[2],
@@ -279,9 +248,29 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
       cxs[2], 0.03, czs[2],  cxe[3], 0.03, cze[3],  cxs[3], 0.03, czs[3],
       cxs[3], 0.03, czs[3],  cxe[3], 0.03, cze[3],  cxe[0], 0.03, cze[0],
       cxs[3], 0.03, czs[3],  cxe[0], 0.03, cze[0],  cxs[0], 0.03, czs[0],
-    ]), 3);
-    const cast = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x0e0d0b, transparent: true, opacity: 0.22, depthWrite: false }));
-    shadowGroup.add(cast);
+    ]);
+    // vertex alpha: full at footprint (near caster), fade to 0 at far end
+    const grad = new Float32Array([1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0]);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aAlpha', new THREE.BufferAttribute(grad, 1));
+    const mat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      vertexShader: `attribute float aAlpha; varying float vA; void main(){ vA = aAlpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader: `uniform float uOp; varying float vA; void main(){ gl_FragColor = vec4(0.05,0.045,0.04, uOp * vA); }`,
+      uniforms: { uOp: { value: baseOp } },
+    });
+    shadowGroup.add(new THREE.Mesh(geo, mat));
+  };
+  map.objects.forEach((o) => {
+    if (o.kind === 'building') return;
+    const len = o.h * (0.35 + (1 - sunElev) * 2.2) * (o.kind === 'tower' ? 2.2 : 1);
+    buildCast(o, len, o.kind === 'tower' ? 0.4 : 0.32, o.kind === 'tower');
+  });
+  map.objects.forEach((o) => {
+    if (o.kind !== 'building') return;
+    const len = o.h * (0.3 + (1 - sunElev) * 1.8);
+    buildCast(o, len, 0.24, false);
   });
   worldGroup.add(shadowGroup);
 
