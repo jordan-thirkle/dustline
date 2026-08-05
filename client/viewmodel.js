@@ -293,35 +293,56 @@ function buildGun(id) {
       part(new THREE.BoxGeometry(0.024, 0.055, 0.06), polymer, 0, 0, 0.09);
       break;
     }
-    default: { // m4
-      // receiver
+    default: { // m4 — reference-accurate proportions + construction cues
+      // receiver + upper
       part(box(receiverMat, 0.045, 0.05, 0.4), receiverMat, 0, 0.005, -0.03);
-      part(box(cerakote, 0.04, 0.045, 0.34), cerakote, 0, 0.01, -0.03);
+      part(box(cerakote, 0.04, 0.045, 0.34), cerakote, 0, 0.012, -0.03);
+      // ejection port (darker recess + dust cover line)
+      part(box(wornMetal, 0.026, 0.018, 0.05), wornMetal, 0.021, 0.035, 0.0);
+      // charging handle
+      part(new THREE.BoxGeometry(0.024, 0.02, 0.035), wornMetal, 0.028, 0.04, -0.15);
+      // takedown pins
+      part(new THREE.CylinderGeometry(0.005, 0.005, 0.02, 6), wornMetal, 0, 0.03, -0.1, 0, 0, Math.PI / 2);
+      part(new THREE.CylinderGeometry(0.005, 0.005, 0.02, 6), wornMetal, 0, 0.02, -0.22, 0, 0, Math.PI / 2);
+      // selector lever
+      part(new THREE.BoxGeometry(0.012, 0.016, 0.03), wornMetal, 0.024, 0.018, 0.04);
+      // trigger guard
+      part(new THREE.TorusGeometry(0.02, 0.004, 6, 12, Math.PI), wornMetal, 0, -0.06, 0.05, 0, 0, 0);
       // upper rail
       part(box(cerakote, 0.032, 0.02, 0.2), cerakote, 0, 0.045, 0.0);
       // handguard (ventilated)
       part(new THREE.CylinderGeometry(0.018, 0.018, 0.2, 10), barrelMetal, 0, 0.02, 0.12, Math.PI / 2, 0, 0);
       part(box(cerakote, 0.04, 0.05, 0.2), cerakote, 0, 0.005, 0.12);
+      // handguard heat-shield ribs
+      for (let i = 0; i < 4; i++) {
+        part(new THREE.TorusGeometry(0.019, 0.002, 5, 10), wornMetal, 0, 0.02, 0.05 + i * 0.045, 0, 0, 0);
+      }
       // barrel
       part(new THREE.CylinderGeometry(0.008, 0.008, 0.22, 8), barrelMetal, 0, 0.02, 0.26, Math.PI / 2, 0, 0);
-      // muzzle device (A2 birdcage)
-      part(new THREE.CylinderGeometry(0.012, 0.012, 0.06, 10), wornMetal, 0, 0.02, 0.36, Math.PI / 2, 0, 0);
-      part(new THREE.CylinderGeometry(0.013, 0.013, 0.02, 10), wornMetal, 0, 0.02, 0.39, Math.PI / 2, 0, 0);
-      // front sight post
+      // gas block + front sight (delta)
+      part(new THREE.BoxGeometry(0.02, 0.03, 0.04), wornMetal, 0, 0.028, 0.2);
       part(new THREE.BoxGeometry(0.014, 0.05, 0.02), wornMetal, 0, 0.05, 0.28);
-      // carry handle + rear sight
+      // A2 muzzle (birdcage)
+      part(new THREE.CylinderGeometry(0.012, 0.012, 0.06, 10), wornMetal, 0, 0.02, 0.36, Math.PI / 2, 0, 0);
+      part(new THREE.CylinderGeometry(0.013, 0.013, 0.015, 10), wornMetal, 0, 0.02, 0.39, Math.PI / 2, 0, 0);
+      // carry handle + rear sight (ladder aperture)
       part(box(cerakote, 0.05, 0.06, 0.04), cerakote, 0, 0.075, -0.12);
       part(box(wornMetal, 0.03, 0.025, 0.03), wornMetal, 0, 0.065, -0.14);
-      // mag (curved STANAG)
+      // STANAG mag (curved)
       part(box(polymer, 0.042, 0.11, 0.06), polymer, 0, -0.09, -0.02);
       part(box(polymer, 0.04, 0.05, 0.055), polymer, 0, -0.13, 0.0, 0.18);
+      // mag catch
+      part(new THREE.BoxGeometry(0.008, 0.014, 0.014), wornMetal, 0.024, -0.035, 0.0);
       // pistol grip
       part(box(polymer, 0.045, 0.09, 0.06), polymer, 0, -0.08, 0.06);
-      // stock (collapsible)
+      // collapsible stock
       part(box(polymer, 0.045, 0.05, 0.2), polymer, 0, -0.005, -0.24);
       part(box(polymer, 0.03, 0.025, 0.06), polymer, 0, 0.005, -0.32);
-      // charging handle
-      part(new THREE.BoxGeometry(0.02, 0.02, 0.04), wornMetal, 0.025, 0.035, -0.14);
+      part(new THREE.CylinderGeometry(0.006, 0.006, 0.02, 6), wornMetal, 0, 0.02, -0.28, 0, 0, Math.PI / 2);
+      // sling plate
+      part(box(wornMetal, 0.016, 0.02, 0.012), wornMetal, 0.024, 0.0, -0.34);
+      // edge wear hints (subtle)
+      part(box(cerakote, 0.04, 0.01, 0.05), cerakote, 0, 0.03, -0.04);
     }
   }
   g.userData.muzzle = new THREE.Object3D();
