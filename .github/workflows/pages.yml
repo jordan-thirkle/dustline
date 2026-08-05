@@ -24,6 +24,8 @@ jobs:
         run: |
           printf 'window.DUSTLINE_CONFIG = { gameServerUrl: %s };\n' "$(python3 -c 'import json,os; print(json.dumps(os.environ.get("GAME_SERVER_URL", "")))')" > runtime-config.js
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
