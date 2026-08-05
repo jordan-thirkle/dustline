@@ -3,5 +3,6 @@ dist/
 .DS_Store
 *.log
 shots/*.png
+shots/.chromeprofile/
 !shots/.gitkeep
 .env

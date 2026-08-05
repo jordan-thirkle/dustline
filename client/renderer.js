@@ -120,6 +120,23 @@ function grimeTexture() {
   return t;
 }
 
+// Soft radial gradient for AO contact under buildings.
+function contactShadowTexture() {
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, S / 2);
+  grd.addColorStop(0, 'rgba(0,0,0,1)');
+  grd.addColorStop(0.5, 'rgba(0,0,0,0.6)');
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, S, S);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4;
+  return t;
+}
+
 export function createRenderer(container, quality = QUALITY.high) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.dpr));
@@ -231,14 +248,14 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   const dirtDecals = new THREE.Group();
   map.objects.forEach((o) => {
     if (o.kind === 'building') return; // buildings get real shadow maps
-    const sw = o.w * 1.2 + 0.6, sd = o.d * 1.2 + 0.6;
-    // tight soft shadow under the footprint
+    const sw = o.w * 1.25 + 0.8, sd = o.d * 1.25 + 0.8;
+    // tight soft shadow under the footprint (denser — critic r8: grounding)
     const shadow = new THREE.Mesh(
       new THREE.PlaneGeometry(sw, sd),
-      new THREE.MeshBasicMaterial({ color: 0x0a0a08, transparent: true, opacity: 0.4, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0x070706, transparent: true, opacity: 0.55, depthWrite: false })
     );
     shadow.rotation.x = -Math.PI / 2;
-    shadow.position.set(o.x, 0.04, o.z);
+    shadow.position.set(o.x, 0.045, o.z);
     dirtDecals.add(shadow);
     // dirt stain ring around base
     const decal = new THREE.Mesh(
@@ -250,6 +267,20 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
     dirtDecals.add(decal);
   });
   worldGroup.add(dirtDecals);
+
+  // Building base AO — dark ground contact band around every structure
+  // (critic r8: walls must visibly sit on the ground, not float).
+  const aoTex = contactShadowTexture();
+  map.objects.forEach((o) => {
+    const bandW = o.w + 2.4, bandD = o.d + 2.4;
+    const ao = new THREE.Mesh(
+      new THREE.PlaneGeometry(bandW, bandD),
+      new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, opacity: 0.65, depthWrite: false })
+    );
+    ao.rotation.x = -Math.PI / 2;
+    ao.position.set(o.x, 0.05, o.z);
+    dirtDecals.add(ao);
+  });
 
   // Wall-base grime band — irregular vertical splash, not continuous strip.
   // Use a gradient texture so it fades up 0.3-1.2m (critic).
