@@ -1,16 +1,17 @@
 import * as THREE from 'three';
 
 // Shared, deliberately restrained materials: the kit should sit in the dusty light.
+// Desaturated accents so secondary props never compete with the combat read.
 const palette = {
   tan: 0x9a8061, sand: 0xb29a77, dark: 0x4a4036, wood: 0x765b3e,
-  canvas: 0x9b8d70, fadedRed: 0x8b5547, blue: 0x53656a, steel: 0x62615a,
-  rust: 0x70483b, black: 0x282822, plastic: 0x777368, white: 0xc2b69a,
+  canvas: 0x9b8d70, fadedRed: 0x6f4a42, blue: 0x4c5a5e, steel: 0x62615a,
+  rust: 0x70483b, black: 0x282822, plastic: 0x777368, white: 0xb0a690,
 };
 const materials = {
   cloth: new THREE.MeshStandardMaterial({ color: palette.canvas, roughness: 0.95, side: THREE.DoubleSide }),
   canvas: new THREE.MeshStandardMaterial({ color: palette.canvas, roughness: 0.9, side: THREE.DoubleSide }),
   wood: new THREE.MeshStandardMaterial({ color: palette.wood, roughness: 0.82 }),
-  paintedMetal: new THREE.MeshStandardMaterial({ color: palette.steel, roughness: 0.65, metalness: 0.5 }),
+  paintedMetal: new THREE.MeshStandardMaterial({ color: palette.steel, roughness: 0.6, metalness: 0.5 }),
   rustedMetal: new THREE.MeshStandardMaterial({ color: palette.rust, roughness: 0.78, metalness: 0.35 }),
   plastic: new THREE.MeshStandardMaterial({ color: palette.plastic, roughness: 0.72 }),
   rubber: new THREE.MeshStandardMaterial({ color: palette.black, roughness: 0.92 }),
@@ -19,9 +20,9 @@ const materials = {
 function texture(label, stripes = false) {
   if (typeof document === 'undefined') return null;
   const c = document.createElement('canvas'); c.width = 256; c.height = 128;
-  const x = c.getContext('2d'); x.fillStyle = '#9b8d70'; x.fillRect(0, 0, 256, 128);
-  if (stripes) { x.fillStyle = '#7f6654'; for (let i = -1; i < 8; i += 2) x.fillRect(i * 40, 0, 20, 128); }
-  x.fillStyle = '#3e3930'; x.font = 'bold 25px sans-serif'; x.textAlign = 'center'; x.fillText(label, 128, 76);
+  const x = c.getContext('2d'); x.fillStyle = '#8d8070'; x.fillRect(0, 0, 256, 128);
+  if (stripes) { x.fillStyle = '#7a6754'; for (let i = -1; i < 8; i += 2) x.fillRect(i * 40, 0, 20, 128); }
+  x.fillStyle = '#54483c'; x.font = 'bold 22px sans-serif'; x.textAlign = 'center'; x.fillText(label, 128, 76);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 function mat(base, color, map = null) {
