@@ -127,7 +127,7 @@ export function createRenderer(container, quality = QUALITY.high) {
   renderer.shadowMap.enabled = quality.shadows;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.35;   // punchier key-to-shadow separation
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
   return renderer;
@@ -174,10 +174,9 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   scene.fog = new THREE.Fog(light.fog[0], light.fog[1], light.fog[2], light.fogNear * 0.55, light.fogFar);
   scene.background = new THREE.Color(light.sky[0], light.sky[1], light.sky[2]);
 
-  // Sun — authored directional key per the gauntlet critic: low angle, warm,
-  // cool fill at ~25% of key, 2048 shadows, strong authority.
-  const sun = new THREE.DirectionalLight(0xffe0b8, 4.0);
-  sun.position.set(40, 55, 18);   // lower angle = longer shadows = more hierarchy
+  // Sun — authoritative low-angle key: hard-ish shadows, warm, strong
+  const sun = new THREE.DirectionalLight(0xffe0b8, 4.6);
+  sun.position.set(38, 48, 16);
   sun.castShadow = quality.shadows;
   if (quality.shadows) {
     sun.shadow.mapSize.set(quality.sunShadowMap, quality.sunShadowMap);
@@ -186,21 +185,21 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
     sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d;
     sun.shadow.camera.near = 10; sun.shadow.camera.far = 280;
     sun.shadow.bias = -0.0003;
-    sun.shadow.normalBias = 0.015;
-    sun.shadow.radius = 4;   // soft penumbra
+    sun.shadow.normalBias = 0.012;
+    sun.shadow.radius = 2.5;   // tighter = harder edge = more authority
   }
   scene.add(sun);
   scene.add(sun.target);
 
-  // Hemisphere + cool fill at ~25% of key (critic: 20-30% fill, warm key)
-  const hemi = new THREE.HemisphereLight(0xfff0da, 0x3a4a5a, 0.42);
+  // Hemisphere + cool fill — CRUSHED to 15% of key (critic: shadows must win)
+  const hemi = new THREE.HemisphereLight(0xfff0da, 0x3a4a5a, 0.28);
   scene.add(hemi);
-  const fill = new THREE.DirectionalLight(0x8fb8e8, 0.7);
+  const fill = new THREE.DirectionalLight(0x8fb8e8, 0.42);
   fill.position.set(-60, 40, -70);
   scene.add(fill);
 
   // subtle bounce light from ground
-  const bounce = new THREE.DirectionalLight(0xc8b690, 0.4);
+  const bounce = new THREE.DirectionalLight(0xc8b690, 0.3);
   bounce.position.set(0, -10, 0);
   scene.add(bounce);
 
