@@ -25,15 +25,42 @@
     .hidden { display: none !important; }
 
     #loading {
-      position: fixed; inset: 0; z-index: 60;
-      background: radial-gradient(120% 90% at 50% 20%, #3a352c 0%, #16140f 60%, #0d0c0a 100%);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-      transition: opacity 0.5s ease;
+      position: fixed; inset: 0; z-index: 60; overflow: hidden;
+      background: #0a0908;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.65s ease;
     }
-    #loading .logo { font-size: 56px; font-weight: 800; letter-spacing: 14px; color: #d6c6a8; text-shadow: 0 4px 24px rgba(0,0,0,0.6); }
-    #loading .sub { letter-spacing: 6px; font-size: 12px; color: var(--hud-muted); text-transform: uppercase; }
-    #loading .bar { width: 260px; height: 3px; background: rgba(214,198,168,0.15); overflow: hidden; }
-    #loading .bar > div { height: 100%; width: 0%; background: var(--hud-line); transition: width 0.2s ease; }
+    #loading::before, #loading::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+    #loading::before { background: linear-gradient(112deg, transparent 0 38%, rgba(194,164,112,.12) 46%, transparent 58%), radial-gradient(85% 100% at 50% 42%, rgba(103,83,57,.36), transparent 72%); animation: loadingSweep 7s ease-in-out infinite; }
+    #loading::after { opacity: .18; background-image: linear-gradient(rgba(214,198,168,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(214,198,168,.08) 1px, transparent 1px); background-size: 72px 72px; mask-image: linear-gradient(to bottom, transparent, black 32%, black 70%, transparent); }
+    @keyframes loadingSweep { 0%, 100% { transform: translateX(-18%); opacity: .5; } 50% { transform: translateX(18%); opacity: 1; } }
+    #loading .scene-mark { position: absolute; inset: 0; opacity: .28; background: linear-gradient(180deg, transparent 42%, rgba(10,9,8,.7) 78%), linear-gradient(90deg, rgba(10,9,8,.9), transparent 35%, transparent 65%, rgba(10,9,8,.9)); }
+    #loading .loading-content { position: relative; z-index: 1; width: min(520px, 82vw); text-align: center; }
+    #loading .publisher { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 10px; letter-spacing: 4px; color: rgba(214,198,168,.5); text-transform: uppercase; margin-bottom: 24px; }
+    #loading .publisher-mark { width: 22px; height: 22px; border: 1px solid rgba(214,198,168,.7); transform: rotate(45deg); display: grid; place-items: center; }
+    #loading .publisher-mark::after { content: "J"; transform: rotate(-45deg); color: var(--hud-line); font-size: 11px; font-weight: 800; }
+    #loading .publisher b { color: var(--hud-line); font-weight: 800; }
+    #loading .logo-lockup { position: relative; display: inline-block; }
+    #loading .logo { font-size: clamp(44px, 7vw, 78px); line-height: .85; font-weight: 900; letter-spacing: clamp(8px, 1.7vw, 17px); padding-left: 17px; color: #e4d5b4; text-shadow: 0 8px 35px rgba(0,0,0,.9); }
+    #loading .logo::after { content: ""; position: absolute; left: 10%; right: 0; bottom: -10px; height: 3px; background: linear-gradient(90deg, #806949 0 18%, #d6c6a8 18% 72%, transparent 72%); transform: skewX(-28deg); opacity: .85; }
+    #loading .rule { width: 100%; height: 1px; margin: 27px 0 15px; background: linear-gradient(90deg, transparent, rgba(214,198,168,.7), transparent); }
+    #loading .sub { letter-spacing: 7px; font-size: 11px; color: rgba(214,198,168,.6); text-transform: uppercase; }
+    #loading .load-meta { display: flex; justify-content: space-between; margin-top: 56px; color: rgba(214,198,168,.52); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+    #loading .load-status { color: var(--hud-line); }
+    #loading .bar { position: relative; width: 100%; height: 4px; margin-top: 10px; background: rgba(214,198,168,.13); overflow: hidden; }
+    #loading .bar > div { height: 100%; width: 0%; background: linear-gradient(90deg, #8b7352, #e4d5b4); box-shadow: 0 0 14px rgba(228,213,180,.45); transition: width 0.35s cubic-bezier(.22,.61,.36,1); }
+    #loading.failed .bar > div { background: #c2452c; box-shadow: none; }
+    #loading .tip { margin-top: 20px; color: rgba(214,198,168,.36); font-size: 10px; letter-spacing: 1px; }
+    #loading .error-panel { display: none; margin-top: 22px; padding: 14px 16px; border: 1px solid rgba(194,69,44,.7); background: rgba(35,15,12,.82); color: #e4b1a5; font-size: 11px; letter-spacing: 1px; line-height: 1.7; }
+    #loading.failed .error-panel { display: block; }
+    #loading.failed .tip { display: none; }
+    #loading .recovery { display: none; gap: 10px; justify-content: center; margin-top: 14px; }
+    #loading.failed .recovery { display: flex; }
+    #loading .retry { padding: 9px 22px; border: 1px solid rgba(214,198,168,.7); background: transparent; color: var(--hud-line); font: inherit; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; }
+    #loading .retry.primary { background: var(--hud-line); color: #0d0c0a; }
+    #loading .corner { position: absolute; z-index: 1; color: rgba(214,198,168,.28); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
+    #loading .corner.tl { top: 28px; left: 32px; } #loading .corner.br { right: 32px; bottom: 28px; }
+    @media (max-width: 700px) { #loading .corner { display: none; } #loading .load-meta { margin-top: 42px; } #loading .loading-content { width: min(520px, 88vw); } }
 
     #menu {
       position: fixed; inset: 0; z-index: 50;
@@ -193,6 +220,15 @@
     #conn.conn-online { color: var(--good); }
     #conn.conn-connecting { color: var(--hud-muted); }
     #conn.conn-offline { color: var(--warn); }
+    #aim-capture { position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%); z-index: 36; padding: 9px 15px; background: rgba(12,11,9,.84); border: 1px solid rgba(214,198,168,.35); color: var(--hud-line); font-size: 10px; letter-spacing: 2px; pointer-events: none; }
+    #connection-recovery { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; background: rgba(8,7,6,.72); backdrop-filter: blur(7px); }
+    #connection-recovery.hidden { display: none; }
+    .recovery-card { width: min(440px, 86vw); padding: 30px; background: #191611; border: 1px solid rgba(194,69,44,.7); box-shadow: 0 20px 70px rgba(0,0,0,.6); }
+    .recovery-title { margin-top: 14px; color: #e4b1a5; font-size: 23px; letter-spacing: 3px; font-weight: 800; }
+    .recovery-card p { color: var(--hud-muted); font-size: 13px; line-height: 1.6; }
+    .recovery-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .recovery-actions button { padding: 10px 14px; border: 1px solid var(--hud-line); background: transparent; color: var(--hud-line); font: inherit; letter-spacing: 1px; cursor: pointer; }
+    .recovery-actions button:first-child { background: var(--hud-line); color: #0d0c0a; }
 
     #toast {
       position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(10px);
@@ -201,6 +237,24 @@
       pointer-events: none;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .menu-link { border: 0; background: transparent; color: rgba(214,198,168,.55); font: inherit; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; font-size: 10px; padding: 6px 12px; }
+    .menu-link:hover { color: var(--hud-line); }
+    #update-notice { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; }
+    #update-notice.hidden { display: none; }
+    .update-backdrop { position: absolute; inset: 0; background: rgba(5,4,3,.78); backdrop-filter: blur(8px); }
+    .update-card { position: relative; width: min(580px, 88vw); background: linear-gradient(145deg, rgba(36,31,24,.98), rgba(16,14,11,.98)); border: 1px solid rgba(225,208,174,.45); box-shadow: 0 22px 80px rgba(0,0,0,.7); padding: 34px; animation: updateIn .32s cubic-bezier(.22,.61,.36,1); }
+    @keyframes updateIn { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+    .update-kicker { color: var(--hud-muted); font-size: 10px; letter-spacing: 4px; }
+    .update-title { margin-top: 16px; font-size: 28px; letter-spacing: 4px; font-weight: 800; color: var(--hud-line); }
+    .update-summary { margin-top: 10px; color: rgba(214,198,168,.7); font-size: 14px; line-height: 1.6; }
+    .update-rule { height: 1px; margin: 22px 0 14px; background: linear-gradient(90deg, var(--hud-line), transparent); opacity: .45; }
+    .update-notes-list { display: grid; gap: 9px; }
+    .update-note { color: rgba(214,198,168,.82); font-size: 13px; line-height: 1.45; }
+    .update-note span { display: inline-block; color: var(--good); font-weight: 800; margin-right: 9px; }
+    .update-actions { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 28px; }
+    .update-actions a, .update-actions button { font: inherit; letter-spacing: 2px; text-transform: uppercase; font-size: 10px; padding: 10px 16px; cursor: pointer; }
+    .update-actions a { color: var(--hud-muted); }
+    .update-actions button { border: 1px solid var(--hud-line); background: var(--hud-line); color: #0d0c0a; }
 
     #xp-panel { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 380px; }
     .xp-title { font-size: 26px; font-weight: 800; letter-spacing: 6px; color: var(--hud-line); }
@@ -214,15 +268,26 @@
   <div id="app"></div>
   <div id="vignette"></div>
 
-  <div id="loading">
-    <div class="logo">DUSTLINE</div>
-    <div class="sub">HOLD THE LINE</div>
-    <div class="bar"><div id="loadbar"></div></div>
+  <div id="loading" aria-live="polite">
+    <div class="scene-mark"></div>
+    <div class="corner tl">BYJTT / FIELD SYSTEMS 01</div>
+    <div class="corner br">BUILD 0.1.0 · WEBGL</div>
+    <div class="loading-content">
+      <div class="publisher"><span class="publisher-mark" aria-hidden="true"></span><span>A <b>BYJTT.COM</b> PRODUCTION</span></div>
+      <div class="logo-lockup"><div class="logo">DUSTLINE</div></div>
+      <div class="rule"></div>
+      <div class="sub">HOLD THE LINE</div>
+      <div class="load-meta"><span id="load-phase">INITIALIZING</span><span class="load-status" id="load-status">0%</span></div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="loadbar"></div></div>
+      <div class="tip" id="load-tip">CALIBRATING FIELD SYSTEMS · PROCEDURAL ASSETS</div>
+      <div class="error-panel" id="load-error">FIELD SYSTEMS FAILED TO INITIALIZE.<br><span>Retry the boot sequence or continue in safe mode.</span></div>
+      <div class="recovery"><button class="retry primary" id="load-retry">Retry boot</button><button class="retry" id="load-safe">Safe mode</button></div>
+    </div>
   </div>
 
   <div id="menu" class="hidden">
     <div class="title">DUSTLINE</div>
-    <div class="tag">A SUN-BAKED MILITARY SKIRMISH — GAUNTLET LOOP BUILT</div>
+    <div class="tag">OPERATION DUSTLINE · DUSTLINE DISTRICT</div>
     <button class="btn" id="btn-play">Deploy</button>
     <div class="menu-row">
       <button class="btn secondary" id="btn-loadout">Loadout</button>
@@ -249,9 +314,9 @@
       <span><b>Space</b></span><span>Jump</span>
       <span><b>C</b></span><span>Crouch</span>
       <span><b>Tab</b></span><span>Scoreboard</span>
-      <span><b>Esc</b></span><span>Pause</span>
+      <span><b>Esc</b></span><span>Release cursor</span>
     </div>
-    <div class="footer">PROCEDURAL ASSETS • THREE.JS • NO DOWNLOADS</div>
+    <div class="footer">BYJTT.COM · PLAYTEST 0.2.0 · FIELD SYSTEMS ONLINE</div>
   </div>
 
   <div id="hud" class="hidden">

@@ -105,6 +105,38 @@ export const UI = {
       c.className = 'hidden';
       document.body.appendChild(c);
     }
+    if (!$('#aim-capture')) {
+      const aim = document.createElement('div');
+      aim.id = 'aim-capture';
+      aim.className = 'hidden';
+      aim.textContent = 'CLICK TO CAPTURE AIM · ESC RELEASES CURSOR';
+      document.body.appendChild(aim);
+    }
+    if (!$('#connection-recovery')) {
+      const panel = document.createElement('div');
+      panel.id = 'connection-recovery';
+      panel.className = 'hidden';
+      panel.innerHTML = '<div class="recovery-card"><div class="update-kicker">BYJTT.COM / FIELD SYSTEMS</div><div class="recovery-title">FIELD CONNECTION LOST</div><p>We could not keep the match connection open. Your local profile is safe.</p><div class="recovery-actions"><button id="recovery-retry">Retry connection</button><button id="recovery-menu">Return to menu</button></div></div>';
+      document.body.appendChild(panel);
+    }
+
+    if (!$('#update-notice')) {
+      const notice = document.createElement('aside');
+      notice.id = 'update-notice';
+      notice.className = 'update-notice hidden';
+      notice.setAttribute('role', 'dialog');
+      notice.setAttribute('aria-modal', 'true');
+      notice.innerHTML = '<div class="update-backdrop"></div><div class="update-card"><div class="update-kicker">BYJTT.COM / FIELD UPDATE</div><div class="update-title" id="update-title"></div><div class="update-summary" id="update-summary"></div><div class="update-rule"></div><div class="update-notes-list" id="update-list"></div><div class="update-actions"><a id="update-notes" href="/CHANGELOG.md" target="_blank" rel="noreferrer">Open full changelog</a><button id="update-dismiss">Continue</button></div></div>';
+      document.body.appendChild(notice);
+    }
+    if (!$('#btn-updates')) {
+      const updates = document.createElement('button');
+      updates.id = 'btn-updates';
+      updates.className = 'menu-link';
+      updates.textContent = 'Field updates';
+      updates.addEventListener('click', () => this.showUpdate(this.lastUpdate || { latestVersion: '0.2.0', title: 'Field updates', summary: 'Read the latest DUSTLINE changelog.', notes: [] }));
+      $('#menu')?.appendChild(updates);
+    }
   },
 
   bind() {
@@ -112,6 +144,10 @@ export const UI = {
     if (btnPlay) btnPlay.addEventListener('click', () => { /* game.start handled by main */ });
     const btnRestart = $('#btn-restart');
     if (btnRestart) btnRestart.addEventListener('click', () => { /* handled */ });
+    const updateDismiss = $('#update-dismiss');
+    if (updateDismiss) updateDismiss.addEventListener('click', () => this.dismissUpdate());
+    $('#recovery-retry')?.addEventListener('click', () => { this.hideRecovery(); this.onRetry && this.onRetry(); });
+    $('#recovery-menu')?.addEventListener('click', () => { this.hideRecovery(); this.showMenu(); });
 
     // loadout
     const btnLoadout = $('#btn-loadout');
@@ -484,7 +520,16 @@ export const UI = {
     c.className = 'conn-' + status;
     c.textContent = status.toUpperCase();
     c.classList.remove('hidden');
+    if (status === 'offline' || status === 'reconnecting') this.showRecovery();
   },
+
+  setAimCapture(captured) {
+    const aim = $('#aim-capture');
+    if (aim) aim.classList.toggle('hidden', captured);
+  },
+
+  showRecovery() { $('#connection-recovery')?.classList.remove('hidden'); },
+  hideRecovery() { $('#connection-recovery')?.classList.add('hidden'); },
 
   showToast(text) {
     let t = $('#toast');
@@ -501,6 +546,23 @@ export const UI = {
 
   roomUpdate(room) {
     this.showToast('ROOM ' + room.code + ' — ' + room.players.length + ' PLAYERS');
+  },
+
+  showUpdate(update) {
+    const notice = $('#update-notice');
+    if (!notice || !update) return;
+    this.lastUpdate = update;
+    $('#update-title').textContent = update.title || `VERSION ${update.latestVersion}`;
+    $('#update-summary').textContent = update.summary || 'New field systems are online.';
+    $('#update-notes').href = update.notesUrl || '/CHANGELOG.md';
+    const list = $('#update-list');
+    if (list) list.innerHTML = (update.notes || []).slice(0, 5).map((note) => `<div class="update-note"><span>+</span>${note}</div>`).join('');
+    notice.classList.remove('hidden');
+  },
+
+  dismissUpdate() {
+    const notice = $('#update-notice');
+    if (notice) notice.classList.add('hidden');
   },
 
   getLoadout() { return { ...this.loadout }; },
