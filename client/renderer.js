@@ -120,23 +120,6 @@ function grimeTexture() {
   return t;
 }
 
-// Soft radial gradient for AO contact under buildings.
-function contactShadowTexture() {
-  const S = 128;
-  const c = document.createElement('canvas');
-  c.width = c.height = S;
-  const g = c.getContext('2d');
-  const grd = g.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, S / 2);
-  grd.addColorStop(0, 'rgba(0,0,0,1)');
-  grd.addColorStop(0.5, 'rgba(0,0,0,0.6)');
-  grd.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = grd;
-  g.fillRect(0, 0, S, S);
-  const t = new THREE.CanvasTexture(c);
-  t.anisotropy = 4;
-  return t;
-}
-
 export function createRenderer(container, quality = QUALITY.high) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.dpr));
@@ -245,17 +228,19 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
 
   // Contact shadows — footprint-aligned soft rectangles (not oval decals),
   // darker and tighter at the base, fading with distance from the object.
+  // Directionally biased along the sun so they read as projected occlusion.
+  const sunDir = new THREE.Vector3(sun.position.x, 0, sun.position.z).normalize();
   const dirtDecals = new THREE.Group();
   map.objects.forEach((o) => {
     if (o.kind === 'building') return; // buildings get real shadow maps
     const sw = o.w * 1.25 + 0.8, sd = o.d * 1.25 + 0.8;
-    // tight soft shadow under the footprint (denser — critic r8: grounding)
+    // tight soft shadow under the footprint, offset toward the shadow side
     const shadow = new THREE.Mesh(
       new THREE.PlaneGeometry(sw, sd),
       new THREE.MeshBasicMaterial({ color: 0x070706, transparent: true, opacity: 0.55, depthWrite: false })
     );
     shadow.rotation.x = -Math.PI / 2;
-    shadow.position.set(o.x, 0.045, o.z);
+    shadow.position.set(o.x + sunDir.x * 0.5, 0.045, o.z + sunDir.z * 0.5);
     dirtDecals.add(shadow);
     // dirt stain ring around base
     const decal = new THREE.Mesh(
@@ -268,17 +253,20 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   });
   worldGroup.add(dirtDecals);
 
-  // Building base AO — dark ground contact band around every structure
-  // (critic r8: walls must visibly sit on the ground, not float).
-  const aoTex = contactShadowTexture();
+  // Building base AO — directional: tighter on the sun side, wider on the
+  // shadow side, so it reads as occlusion, not a centered stamp.
   map.objects.forEach((o) => {
     const bandW = o.w + 2.4, bandD = o.d + 2.4;
     const ao = new THREE.Mesh(
       new THREE.PlaneGeometry(bandW, bandD),
-      new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, opacity: 0.65, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0x0b0b09, transparent: true, opacity: 0.6, depthWrite: false })
     );
     ao.rotation.x = -Math.PI / 2;
-    ao.position.set(o.x, 0.05, o.z);
+    // offset base AO toward the shadow side of each structure
+    ao.position.set(o.x + sunDir.x * 1.4, 0.05, o.z + sunDir.z * 1.4);
+    // scale it longer along the sun axis for a projected feel
+    ao.scale.x = 1 + Math.abs(sunDir.x) * 0.5;
+    ao.scale.z = 1 + Math.abs(sunDir.z) * 0.5;
     dirtDecals.add(ao);
   });
 
