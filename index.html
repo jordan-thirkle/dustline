@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="DUSTLINE — a sun-baked military skirmish FPS. Built with Three.js via the Gauntlet Loop." />
+  <title>DUSTLINE — HOLD THE LINE</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23b7ad9f'/%3E%3Cpath d='M6 24 L16 6 L26 24 Z' fill='%232a2a26'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --hud-bg: rgba(16, 15, 13, 0.72);
+      --hud-line: rgba(214, 198, 168, 0.9);
+      --hud-muted: rgba(214, 198, 168, 0.55);
+      --warn: #c2452c;
+      --good: #7fae6a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0c0a; }
+    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #d6c6a8; }
+    #app { position: fixed; inset: 0; }
+    canvas { display: block; }
+    .hidden { display: none !important; }
+
+    #loading {
+      position: fixed; inset: 0; z-index: 60;
+      background: radial-gradient(120% 90% at 50% 20%, #3a352c 0%, #16140f 60%, #0d0c0a 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      transition: opacity 0.5s ease;
+    }
+    #loading .logo { font-size: 56px; font-weight: 800; letter-spacing: 14px; color: #d6c6a8; text-shadow: 0 4px 24px rgba(0,0,0,0.6); }
+    #loading .sub { letter-spacing: 6px; font-size: 12px; color: var(--hud-muted); text-transform: uppercase; }
+    #loading .bar { width: 260px; height: 3px; background: rgba(214,198,168,0.15); overflow: hidden; }
+    #loading .bar > div { height: 100%; width: 0%; background: var(--hud-line); transition: width 0.2s ease; }
+
+    #menu {
+      position: fixed; inset: 0; z-index: 50;
+      background: linear-gradient(180deg, rgba(13,12,10,0.55) 0%, rgba(13,12,10,0.85) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+      cursor: default; user-select: none;
+    }
+    #menu .title { font-size: 72px; font-weight: 800; letter-spacing: 22px; color: #e4d5b4; text-shadow: 0 6px 40px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.9); }
+    #menu .tag { letter-spacing: 8px; font-size: 13px; color: var(--hud-muted); text-transform: uppercase; }
+    #menu .btn {
+      font: inherit; letter-spacing: 3px; text-transform: uppercase; font-size: 15px;
+      color: #0d0c0a; background: var(--hud-line); border: none; padding: 13px 46px; cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+    #menu .btn:hover { background: #fff2d8; transform: scale(1.03); }
+    #menu .btn.secondary { background: transparent; color: var(--hud-line); border: 1px solid var(--hud-line); }
+    #menu .controls { display: grid; grid-template-columns: auto auto; gap: 6px 22px; font-size: 13px; letter-spacing: 1px; color: var(--hud-muted); }
+    #menu .controls b { color: var(--hud-line); font-weight: 600; }
+    #menu .footer { position: absolute; bottom: 22px; font-size: 11px; letter-spacing: 2px; color: rgba(214,198,168,0.35); }
+
+    #hud { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+    #hud * { pointer-events: none; }
+    #crosshair {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 34px; height: 34px; mix-blend-mode: difference;
+    }
+    #crosshair .gap { stroke: rgba(255,255,255,0.95); stroke-width: 1.6; }
+    #crosshair .dot { fill: rgba(255,255,255,0.95); }
+    #hitmarker {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 44px; height: 44px; opacity: 0;
+    }
+    #hitmarker .hm { stroke: #fff; stroke-width: 2.4; stroke-linecap: round; }
+
+    #compass {
+      position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+      width: 380px; height: 26px; overflow: hidden; opacity: 0.92;
+    }
+    #compass .tick { position: absolute; top: 0; width: 1px; height: 7px; background: var(--hud-muted); }
+    #compass .tick.major { height: 11px; background: var(--hud-line); }
+    #compass .label { position: absolute; top: 12px; font-size: 9px; letter-spacing: 1px; color: var(--hud-muted); transform: translateX(-50%); }
+
+    #killfeed { position: absolute; top: 64px; right: 18px; width: 300px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+    .kill-item {
+      background: rgba(16,15,13,0.55); border-left: 2px solid var(--hud-line);
+      padding: 5px 10px; font-size: 12px; letter-spacing: 0.5px;
+      animation: killIn 0.18s ease-out;
+    }
+    .kill-item .vic { color: var(--hud-muted); }
+    @keyframes killIn { from { opacity: 0; transform: translateX(16px); } }
+
+    #vitals { position: absolute; left: 26px; bottom: 22px; display: flex; flex-direction: column; gap: 10px; width: 300px; }
+    .vital .row { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 2px; color: var(--hud-muted); text-transform: uppercase; margin-bottom: 4px; }
+    .vital .track { height: 5px; background: rgba(16,15,13,0.6); border: 1px solid rgba(214,198,168,0.25); }
+    .vital .fill { height: 100%; background: var(--good); transition: width 0.15s ease; }
+    .vital.hp .fill { background: var(--good); }
+    .vital.hp .fill.low { background: var(--warn); }
+    .vital.ap .fill { background: #9aa7b8; }
+
+    #ammo { position: absolute; right: 26px; bottom: 18px; text-align: right; }
+    #ammo .mag { font-size: 52px; font-weight: 700; line-height: 1; color: var(--hud-line); text-shadow: 0 3px 14px rgba(0,0,0,0.7); font-variant-numeric: tabular-nums; }
+    #ammo .reserve { font-size: 18px; color: var(--hud-muted); letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+    #ammo .gun { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--hud-muted); margin-top: 6px; }
+    #ammo .low .mag { color: var(--warn); }
+
+    #wave { position: absolute; top: 34%; left: 50%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity 0.4s ease; }
+    #wave .w { font-size: 44px; font-weight: 800; letter-spacing: 16px; color: var(--hud-line); text-shadow: 0 4px 30px rgba(0,0,0,0.8); }
+    #wave .s { font-size: 13px; letter-spacing: 6px; color: var(--hud-muted); text-transform: uppercase; margin-top: 4px; }
+
+    #objective { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); font-size: 12px; letter-spacing: 4px; color: var(--hud-line); text-transform: uppercase; opacity: 0.85; text-shadow: 0 2px 12px rgba(0,0,0,0.8); }
+
+    #damage { position: absolute; inset: 0; box-shadow: inset 0 0 120px 60px rgba(150, 20, 10, 0); transition: box-shadow 0.5s ease; }
+    #damage.hit { box-shadow: inset 0 0 140px 70px rgba(150, 20, 10, 0.55); transition: none; }
+
+    #scorepop { position: absolute; right: 26px; top: 30%; text-align: right; display: flex; flex-direction: column; gap: 6px; }
+    .pop { font-size: 16px; font-weight: 700; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.8); animation: popUp 1s ease-out forwards; letter-spacing: 1px; }
+    @keyframes popUp { 0% { opacity: 0; transform: translateY(10px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translateY(-22px); } }
+
+    #scorescreen { position: fixed; inset: 0; z-index: 45; background: rgba(13,12,10,0.82); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+    #scorescreen.show { display: flex; }
+    #scorescreen .big { font-size: 46px; font-weight: 800; letter-spacing: 12px; }
+    #scorescreen .stat { font-size: 15px; letter-spacing: 2px; color: var(--hud-muted); }
+    #scorescreen .stat b { color: var(--hud-line); }
+    #scorescreen .btn { font: inherit; letter-spacing: 3px; text-transform: uppercase; font-size: 14px; color: #0d0c0a; background: var(--hud-line); border: none; padding: 12px 40px; cursor: pointer; pointer-events: auto; }
+
+    #help { position: fixed; right: 18px; top: 18px; z-index: 35; font-size: 10px; letter-spacing: 2px; color: rgba(214,198,168,0.4); text-transform: uppercase; pointer-events: none; }
+
+    #vignette { position: fixed; inset: 0; z-index: 5; pointer-events: none;
+      background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,0.42) 100%); }
+
+    @media (max-width: 900px) { #menu .title { font-size: 44px; letter-spacing: 12px; } #ammo .mag { font-size: 40px; } #vitals { width: 230px; } #compass { width: 280px; } }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="vignette"></div>
+
+  <div id="loading">
+    <div class="logo">DUSTLINE</div>
+    <div class="sub">HOLD THE LINE</div>
+    <div class="bar"><div id="loadbar"></div></div>
+  </div>
+
+  <div id="menu" class="hidden">
+    <div class="title">DUSTLINE</div>
+    <div class="tag">A SUN-BAKED MILITARY SKIRMISH — GAUNTLET LOOP BUILT</div>
+    <button class="btn" id="btn-play">Deploy</button>
+    <div class="controls">
+      <span><b>WASD</b></span><span>Move</span>
+      <span><b>Mouse</b></span><span>Aim</span>
+      <span><b>LMB</b></span><span>Fire</span>
+      <span><b>RMB</b></span><span>Aim down sights</span>
+      <span><b>R</b></span><span>Reload</span>
+      <span><b>G</b></span><span>Frag</span>
+      <span><b>Shift</b></span><span>Sprint</span>
+      <span><b>Space</b></span><span>Jump</span>
+      <span><b>C</b></span><span>Crouch</span>
+      <span><b>Tab</b></span><span>Scoreboard</span>
+      <span><b>Esc</b></span><span>Pause</span>
+    </div>
+    <div class="footer">PROCEDURAL ASSETS • THREE.JS • NO DOWNLOADS</div>
+  </div>
+
+  <div id="hud" class="hidden">
+    <div id="crosshair"></div>
+    <div id="hitmarker"></div>
+    <div id="compass"></div>
+    <div id="killfeed"></div>
+    <div id="objective">Hold the line — eliminate all hostiles</div>
+    <div id="wave"><div class="w" id="wave-text"></div><div class="s" id="wave-sub"></div></div>
+    <div id="damage"></div>
+    <div id="scorepop"></div>
+    <div id="help">R RELOAD &nbsp;·&nbsp; G FRAG &nbsp;·&nbsp; TAB SCOREBOARD</div>
+    <div id="vitals">
+      <div class="vital hp"><div class="row"><span>Vitals</span><span id="hp-num">100</span></div><div class="track"><div class="fill" id="hp-fill" style="width:100%"></div></div></div>
+      <div class="vital ap"><div class="row"><span>Armor</span><span id="ap-num">50</span></div><div class="track"><div class="fill" id="ap-fill" style="width:50%"></div></div></div>
+    </div>
+    <div id="ammo">
+      <div class="mag" id="mag">30</div>
+      <div class="reserve" id="reserve">120</div>
+      <div class="gun" id="gunname">M4A1 CARBINE</div>
+    </div>
+  </div>
+
+  <div id="scorescreen">
+    <div class="big" id="ss-title">MISSION COMPLETE</div>
+    <div class="stat" id="ss-wave"></div>
+    <div class="stat" id="ss-kills"></div>
+    <div class="stat" id="ss-acc"></div>
+    <div class="stat" id="ss-score"></div>
+    <button class="btn" id="btn-restart">Run it back</button>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
