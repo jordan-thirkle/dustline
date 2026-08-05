@@ -185,6 +185,7 @@ function buildGun(id) {
 
   // Critic-specified material stack: cerakote, polymer, worn metal, wood
   const cerakote = new THREE.MeshStandardMaterial({ color: 0x262824, roughness: 0.6, metalness: 0.35 });
+  const receiverMat = cerakote;  // receiver uses cerakote finish
   const polymer = new THREE.MeshStandardMaterial({ color: 0x161816, roughness: 0.75, metalness: 0.05 });
   const wornMetal = new THREE.MeshStandardMaterial({ color: 0x55564e, roughness: 0.55, metalness: 0.6 });
   const barrelMetal = new THREE.MeshStandardMaterial({ color: 0x3a3b36, roughness: 0.4, metalness: 0.75 });
