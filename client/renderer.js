@@ -6,6 +6,8 @@ import { MAPS_DATA, aabbs } from '../shared/map.js';
 import { propKit } from './props.js';
 import { buildTower, buildAlleyProps, removeOldTower } from './structures.js';
 
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
 export const QUALITY = {
   low: { shadows: false, sunShadowMap: 1024, fxaa: false, dust: 0.4, dpr: 1, pop: 120 },
   med: { shadows: true, sunShadowMap: 2048, fxaa: true, dust: 0.7, dpr: 1.25, pop: 200 },
@@ -226,34 +228,35 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   ground.receiveShadow = true;
   worldGroup.add(ground);
 
-  // Contact shadows — dual-layer: a TIGHT dark core at the exact footprint
-  // (locks the object to the ground) + a soft directional wedge that fades
-  // out along the shadow side (critic r10 fix #2).
+  // Contact shadows — dual-layer, but opacity scales with object size so a
+  // crate doesn't get a building's grounding signature (critic r11 fix #1).
   const sunDir = new THREE.Vector3(sun.position.x, 0, sun.position.z).normalize();
   const dirtDecals = new THREE.Group();
   map.objects.forEach((o) => {
     if (o.kind === 'building') return; // buildings get real shadow maps
-    // TIGHT CONTACT CORE — sharp, dark, exactly at the footprint
+    const footprint = o.w * o.d;
+    // small props: softer, lighter core; large props: slightly stronger
+    const coreOp = clamp(0.35 + footprint / 40, 0.35, 0.6);
     const core = new THREE.Mesh(
-      new THREE.PlaneGeometry(o.w + 0.15, o.d + 0.15),
-      new THREE.MeshBasicMaterial({ color: 0x050504, transparent: true, opacity: 0.75, depthWrite: false })
+      new THREE.PlaneGeometry(o.w + 0.1, o.d + 0.1),
+      new THREE.MeshBasicMaterial({ color: 0x0a0a08, transparent: true, opacity: coreOp, depthWrite: false })
     );
     core.rotation.x = -Math.PI / 2;
     core.position.set(o.x, 0.05, o.z);
     dirtDecals.add(core);
     // SOFT DIRECTIONAL WEDGE — offset along sun, fading (projected occlusion)
-    const sw = o.w * 1.35 + 0.9, sd = o.d * 1.35 + 0.9;
+    const sw = o.w * 1.3 + 0.8, sd = o.d * 1.3 + 0.8;
     const wedge = new THREE.Mesh(
       new THREE.PlaneGeometry(sw, sd),
-      new THREE.MeshBasicMaterial({ color: 0x0a0a08, transparent: true, opacity: 0.4, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0x0e0d0b, transparent: true, opacity: 0.28, depthWrite: false })
     );
     wedge.rotation.x = -Math.PI / 2;
-    wedge.position.set(o.x + sunDir.x * 0.9, 0.04, o.z + sunDir.z * 0.9);
+    wedge.position.set(o.x + sunDir.x * 0.8, 0.04, o.z + sunDir.z * 0.8);
     dirtDecals.add(wedge);
     // dirt stain ring around base
     const decal = new THREE.Mesh(
-      new THREE.PlaneGeometry(o.w + 1.4, o.d + 1.4),
-      new THREE.MeshBasicMaterial({ color: 0x4c4436, transparent: true, opacity: 0.14, depthWrite: false })
+      new THREE.PlaneGeometry(o.w + 1.3, o.d + 1.3),
+      new THREE.MeshBasicMaterial({ color: 0x4c4436, transparent: true, opacity: 0.12, depthWrite: false })
     );
     decal.rotation.x = -Math.PI / 2;
     decal.position.set(o.x, 0.02, o.z);
@@ -261,26 +264,18 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   });
   worldGroup.add(dirtDecals);
 
-  // Building base AO — tight contact line + directional projection.
+  // Building base AO — broad soft pressure-darkening, sharper only at edges.
   map.objects.forEach((o) => {
-    // tight dark core hugging the footprint
-    const core = new THREE.Mesh(
-      new THREE.PlaneGeometry(o.w + 0.3, o.d + 0.3),
-      new THREE.MeshBasicMaterial({ color: 0x080807, transparent: true, opacity: 0.8, depthWrite: false })
-    );
-    core.rotation.x = -Math.PI / 2;
-    core.position.set(o.x, 0.05, o.z);
-    dirtDecals.add(core);
-    // directional projection away from sun
-    const bandW = o.w + 2.6, bandD = o.d + 2.6;
+    // soft broad base contact (large structures: diffuse, not sharp)
+    const bandW = o.w + 2.8, bandD = o.d + 2.8;
     const ao = new THREE.Mesh(
       new THREE.PlaneGeometry(bandW, bandD),
-      new THREE.MeshBasicMaterial({ color: 0x0b0b09, transparent: true, opacity: 0.5, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0x0c0b09, transparent: true, opacity: 0.42, depthWrite: false })
     );
     ao.rotation.x = -Math.PI / 2;
-    ao.position.set(o.x + sunDir.x * 1.8, 0.04, o.z + sunDir.z * 1.8);
-    ao.scale.x = 1 + Math.abs(sunDir.x) * 0.6;
-    ao.scale.z = 1 + Math.abs(sunDir.z) * 0.6;
+    ao.position.set(o.x + sunDir.x * 1.6, 0.04, o.z + sunDir.z * 1.6);
+    ao.scale.x = 1 + Math.abs(sunDir.x) * 0.5;
+    ao.scale.z = 1 + Math.abs(sunDir.z) * 0.5;
     dirtDecals.add(ao);
   });
 
