@@ -198,8 +198,9 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   const fill = new THREE.DirectionalLight(0x8fb8e8, 0.42);
   fill.position.set(-60, 40, -70);
   scene.add(fill);
-  // cool sky bounce that lifts only deep shadow interiors
-  const skyBounce = new THREE.DirectionalLight(0x9db8d8, 0.25);
+  // cool sky bounce that lifts ONLY the deepest shadow interiors — must stay
+  // as fill, not a second key (critic r6: reduce until it reads as fill).
+  const skyBounce = new THREE.DirectionalLight(0x9db8d8, 0.14);
   skyBounce.position.set(0, 90, -20);
   scene.add(skyBounce);
 
@@ -273,11 +274,13 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
     else if (o.kind === 'tower') { rough = 0.55; metal = 0.6; }    // oxidized steel
     else if (o.kind === 'wall') { rough = 0.85; metal = 0.05; }    // masonry
     else { rough = 0.78; metal = 0.1; }                            // painted stucco
+    const wallTex = wallTexture(o, p[0]);
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(o.w, o.h, o.d),
       new THREE.MeshStandardMaterial({
         color: p[0], roughness: rough, metalness: metal,
-        map: wallTexture(o, p[0]),
+        map: wallTex,
+        roughnessMap: wallTex.userData.roughnessMap,
       })
     );
     body.position.set(o.x, o.h / 2, o.z);
@@ -401,6 +404,12 @@ function wallTexture(o, baseColor) {
   // horizontal grime streak
   g.fillStyle = 'rgba(60, 50, 40, 0.10)';
   g.fillRect(0, 160 + Math.random() * 40, 256, 26);
+  // plaster texture breakup (denser mid-frequency — material response)
+  for (let i = 0; i < 400; i++) {
+    const v = Math.random() * 26 - 13;
+    g.fillStyle = `rgba(${v | 0},${(v * 0.9) | 0},${(v * 0.7) | 0},0.12)`;
+    g.fillRect(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 5, 2 + Math.random() * 5);
+  }
   // windows
   if (o.windows) {
     const rows = Math.max(2, Math.round(o.h / 3.2));
@@ -421,6 +430,22 @@ function wallTexture(o, baseColor) {
   }
   const t = new THREE.CanvasTexture(c);
   t.anisotropy = 4;
+  // roughness map: mid-gray with spatial variation (specular breakup)
+  const rc = document.createElement('canvas');
+  rc.width = 256; rc.height = 256;
+  const rg = rc.getContext('2d');
+  rg.fillStyle = '#8a8a8a';
+  rg.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 2200; i++) {
+    const v = 100 + Math.random() * 90;
+    rg.fillStyle = `rgba(${v | 0},${v | 0},${v | 0},0.2)`;
+    rg.fillRect(Math.random() * 256, Math.random() * 256, 3, 3);
+  }
+  const roughTex = new THREE.CanvasTexture(rc);
+  roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
+  roughTex.repeat.set(Math.max(1, Math.round(o.w / 3)), Math.max(1, Math.round(o.h / 3)));
+  roughTex.anisotropy = 4;
+  t.userData.roughnessMap = roughTex;
   return t;
 }
 
