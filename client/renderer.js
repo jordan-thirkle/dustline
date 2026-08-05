@@ -181,14 +181,14 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   sun.position.set(38, 48, 16);
   sun.castShadow = quality.shadows;
   if (quality.shadows) {
-    sun.shadow.mapSize.set(quality.sunShadowMap, quality.sunShadowMap);
+    sun.shadow.mapSize.set(Math.min(quality.sunShadowMap * 2, 4096), Math.min(quality.sunShadowMap * 2, 4096));
     const d = 90;
     sun.shadow.camera.left = -d; sun.shadow.camera.right = d;
     sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d;
     sun.shadow.camera.near = 10; sun.shadow.camera.far = 280;
-    sun.shadow.bias = -0.0003;
-    sun.shadow.normalBias = 0.012;
-    sun.shadow.radius = 2.5;   // tighter = harder edge = more authority
+    sun.shadow.bias = -0.0002;
+    sun.shadow.normalBias = 0.008;
+    sun.shadow.radius = 2;   // tighter = harder edge = more authority
   }
   scene.add(sun);
   scene.add(sun.target);
