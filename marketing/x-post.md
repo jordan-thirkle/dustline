@@ -18,7 +18,7 @@ backyard-to-Sims style + Matt Shumer's Claude of Duty receipts format).
 >
 > The loop: fan out sub-agents, each builds one system, a separate harsh critic
 > with fresh context blind A/B's the rendered frames against real Call of Duty,
-> sends it back until the critic stops failing. 7 rounds so far.
+> sends it back until the critic stops failing. More than a dozen visual rounds so far.
 >
 > Play it here: [link]
 >
@@ -37,7 +37,7 @@ backyard-to-Sims style + Matt Shumer's Claude of Duty receipts format).
 
 **B — Skeptic-bait:**
 > People said the gauntlet loop only works for solo demos. So I pointed it at
-> multiplayer. 7 critic rounds later, the frames stopped looking like AI made it.
+> multiplayer. More than a dozen critic rounds later, the frames stopped looking like AI made it.
 
 **C — Relatable-problem:**
 > Every "AI game" demo is a walking sim in a hallway. I wanted an actual game.
