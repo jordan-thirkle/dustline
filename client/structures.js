@@ -172,5 +172,24 @@ export function buildAlleyProps(mapData, worldGroup) {
   // Hard-edged sun shaft / controlled value break, only a narrow slice of the alley.
   const shaft = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 3.8), new THREE.MeshBasicMaterial({ color: 0xd2b98d, transparent: true, opacity: .18, depthWrite: false }));
   shaft.rotation.x = -Math.PI / 2; shaft.position.set(-7.2, .035, -3.2); group.add(shaft);
+
+  // Layered tactical blockers (critic r6: projecting architecture + sightline control)
+  const pipe = mat(0x5a5148, .72, .45), cable = mat(0x23201c, .9);
+  // pipe run along one wall at ~2m, projecting
+  addBeam(group, [-12.9, 2.05, -9.4], [-12.9, 2.05, 5.8], .09, pipe);
+  addBeam(group, [-12.9, 1.35, -9.4], [-12.9, 1.35, 5.8], .07, pipe);
+  // low cable sag across the corridor (mid-distance choke)
+  addBeam(group, [-11.8, 2.3, -8.2], [-7.2, 2.05, -8.6], .035, cable);
+  addBeam(group, [-7.2, 2.05, -8.6], [-3.1, 2.25, -8.9], .035, cable);
+  // projecting balcony slab on the shadow wall — breaks the vanishing path
+  part(group, new THREE.BoxGeometry(1.9, .14, 1.1), wall, -7.15, 3.1, -5.6);
+  part(group, new THREE.BoxGeometry(.08, .4, .06), edge, -6.75, 2.9, -5.8);
+  // end-of-alley focal marker: stack of crates + a hanging tarp at the far end
+  const crate = mat(0x7a6a52, .82);
+  part(group, new THREE.BoxGeometry(1.1, 1.05, 1.1), crate, -4.2, .52, -0.9);
+  part(group, new THREE.BoxGeometry(1.1, 1.05, 1.1), crate, -4.2, 1.57, -0.9);
+  part(group, new THREE.BoxGeometry(.9, .95, .9), crate, -4.95, .47, -1.1);
+  const tarp = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.6), new THREE.MeshBasicMaterial({ color: 0x6f6250, transparent: true, opacity: .55, side: THREE.DoubleSide }));
+  tarp.position.set(-4.2, 1.7, -2.2); tarp.rotation.y = .2; group.add(tarp);
   return group;
 }
