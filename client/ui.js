@@ -250,6 +250,19 @@ export const UI = {
     if (obj) obj.textContent = state.objective || 'HOLD THE LINE';
     // wave/round
     if (state.waveOrRound) { const w = $('#wave-text'); if (w) w.textContent = state.waveOrRound; }
+    // killstreak HUD
+    const ks = state.killstreak || 0;
+    const streakLabel = $('#streak-label');
+    const streakFill = $('#streak-fill');
+    if (streakLabel) {
+      if (ks >= 2) streakLabel.textContent = ks + ' KILL STREAK';
+      else streakLabel.textContent = '';
+    }
+    if (streakFill) streakFill.style.width = Math.min(100, (ks / 10) * 100) + '%';
+    document.querySelectorAll('.streak-callouts span').forEach((el) => {
+      const cost = parseInt(el.dataset.cost || '0', 10);
+      el.classList.toggle('lit', ks >= cost);
+    });
   },
 
   hitmarker(kind) {
