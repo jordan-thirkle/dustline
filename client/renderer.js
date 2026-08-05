@@ -92,18 +92,27 @@ function pavementTexture() {
   return t;
 }
 
-// Soft radial gradient for contact-shadow blobs under props.
-function contactShadowTexture() {
+// Vertical grime gradient — dense at base, fades up ~1.1m, irregular splash.
+function grimeTexture() {
   const S = 128;
   const c = document.createElement('canvas');
   c.width = c.height = S;
   const g = c.getContext('2d');
-  const grd = g.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, S / 2);
-  grd.addColorStop(0, 'rgba(0,0,0,1)');
-  grd.addColorStop(0.55, 'rgba(0,0,0,0.65)');
-  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  // vertical fade: dark at bottom, transparent at top
+  const grd = g.createLinearGradient(0, 0, 0, S);
+  grd.addColorStop(0, 'rgba(30,26,20,0)');
+  grd.addColorStop(0.65, 'rgba(30,26,20,0.25)');
+  grd.addColorStop(1, 'rgba(24,20,15,0.9)');
   g.fillStyle = grd;
   g.fillRect(0, 0, S, S);
+  // irregular splash edges
+  for (let i = 0; i < 40; i++) {
+    const x = Math.random() * S;
+    const y = S * 0.6 + Math.random() * S * 0.4;
+    const r = 3 + Math.random() * 12;
+    g.fillStyle = 'rgba(20,16,12,0.3)';
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
   const t = new THREE.CanvasTexture(c);
   t.anisotropy = 4;
   return t;
@@ -210,23 +219,24 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   ground.receiveShadow = true;
   worldGroup.add(ground);
 
-  // Dirt decal patches + contact shadow blobs (authored wear: under props,
-  // against wall bases — not uniform detail).
+  // Contact shadows — footprint-aligned soft rectangles (not oval decals),
+  // darker and tighter at the base, fading with distance from the object.
   const dirtDecals = new THREE.Group();
-  const blobTex = contactShadowTexture();
   map.objects.forEach((o) => {
-    // contact shadow under the prop
-    const blob = new THREE.Mesh(
-      new THREE.PlaneGeometry(Math.max(o.w, o.d) * 1.15, Math.max(o.w, o.d) * 1.15),
-      new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, opacity: 0.5, depthWrite: false })
+    if (o.kind === 'building') return; // buildings get real shadow maps
+    const sw = o.w * 1.2 + 0.6, sd = o.d * 1.2 + 0.6;
+    // tight soft shadow under the footprint
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(sw, sd),
+      new THREE.MeshBasicMaterial({ color: 0x0a0a08, transparent: true, opacity: 0.4, depthWrite: false })
     );
-    blob.rotation.x = -Math.PI / 2;
-    blob.position.set(o.x, 0.03, o.z);
-    dirtDecals.add(blob);
-    // dirt stain around the base
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.set(o.x, 0.04, o.z);
+    dirtDecals.add(shadow);
+    // dirt stain ring around base
     const decal = new THREE.Mesh(
-      new THREE.PlaneGeometry(Math.min(o.w + 1.6, 9), Math.min(o.d + 1.6, 9)),
-      new THREE.MeshBasicMaterial({ color: 0x5a4f3e, transparent: true, opacity: 0.14, depthWrite: false })
+      new THREE.PlaneGeometry(o.w + 1.4, o.d + 1.4),
+      new THREE.MeshBasicMaterial({ color: 0x4c4436, transparent: true, opacity: 0.16, depthWrite: false })
     );
     decal.rotation.x = -Math.PI / 2;
     decal.position.set(o.x, 0.02, o.z);
@@ -234,14 +244,16 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   });
   worldGroup.add(dirtDecals);
 
-  // Wall-base grime band — darkens the bottom 0.6m of walls (critic: 0.3-1.2m band)
+  // Wall-base grime band — irregular vertical splash, not continuous strip.
+  // Use a gradient texture so it fades up 0.3-1.2m (critic).
+  const grimeTex = grimeTexture();
   map.objects.forEach((o) => {
     if (o.kind !== 'wall' && o.kind !== 'crate' && o.kind !== 'tower') return;
     const grime = new THREE.Mesh(
-      new THREE.BoxGeometry(o.w + 0.05, 0.6, o.d + 0.05),
-      new THREE.MeshBasicMaterial({ color: 0x3f382c, transparent: true, opacity: 0.18, depthWrite: false })
+      new THREE.BoxGeometry(o.w + 0.05, 1.1, o.d + 0.05),
+      new THREE.MeshBasicMaterial({ map: grimeTex, transparent: true, opacity: 0.5, depthWrite: false })
     );
-    grime.position.set(o.x, 0.3, o.z);
+    grime.position.set(o.x, 0.55, o.z);
     worldGroup.add(grime);
   });
 
@@ -249,10 +261,16 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   const colliders = aabbs(map);
   map.objects.forEach((o, i) => {
     const p = PALETTES[o.palette % PALETTES.length];
+    // material response by kind (critic: concrete/painted/metal/wood distinct)
+    let rough, metal;
+    if (o.kind === 'crate') { rough = 0.8; metal = 0.15; }         // painted wood
+    else if (o.kind === 'tower') { rough = 0.55; metal = 0.6; }    // oxidized steel
+    else if (o.kind === 'wall') { rough = 0.85; metal = 0.05; }    // masonry
+    else { rough = 0.78; metal = 0.1; }                            // painted stucco
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(o.w, o.h, o.d),
       new THREE.MeshStandardMaterial({
-        color: p[0], roughness: 0.9, metalness: 0.02,
+        color: p[0], roughness: rough, metalness: metal,
         map: wallTexture(o, p[0]),
       })
     );
@@ -261,10 +279,10 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
     body.receiveShadow = true;
     worldGroup.add(body);
 
-    // Slight trim darker base
+    // Slight trim darker base (higher roughness = less specular bounce)
     const base = new THREE.Mesh(
       new THREE.BoxGeometry(o.w + 0.06, 0.9, o.d + 0.06),
-      new THREE.MeshStandardMaterial({ color: p[2], roughness: 0.95 })
+      new THREE.MeshStandardMaterial({ color: p[2], roughness: Math.min(1, rough + 0.08), metalness: metal * 0.5 })
     );
     base.position.set(o.x, 0.45, o.z);
     base.receiveShadow = true;
