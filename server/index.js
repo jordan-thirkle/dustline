@@ -10,17 +10,18 @@ import { levelFromXp, UNLOCKS, newStats } from '../shared/progression.js';
 const TICK_MS = 1000 / TICK_RATE;
 const PING_INTERVAL = 5000;
 
-export function createServer({ port = SERVER_PORT } = {}) {
+export function createServer({ port = SERVER_PORT, server: providedServer = null, wss: providedWss = null } = {}) {
   const registry = new RoomRegistry();
   const persistence = new Persistence();
   const clients = new Map(); // ws -> { id, deviceId, name, room, acc, ping }
 
-  const httpServer = http.createServer((req, res) => {
+  const httpServer = providedServer || http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ name: 'dustline-server', ok: true }));
   });
 
-  const wss = new WebSocketServer({ server: httpServer, path: '/' });
+  const wss = providedWss || new WebSocketServer({ server: httpServer, path: '/' });
+  let ownsListener = !providedServer;
 
   wss.on('connection', (ws) => {
     const client = { ws, id: null, deviceId: null, name: null, room: null, acc: null, ping: 0, lastPing: 0 };
@@ -140,9 +141,11 @@ export function createServer({ port = SERVER_PORT } = {}) {
     registry.tickAll(dt);
   }, TICK_MS);
 
-  httpServer.listen(port, () => {
-    console.log(`DUSTLINE server on :${port} (ws) — tick ${TICK_RATE}Hz`);
-  });
+  if (ownsListener) {
+    httpServer.listen(port, () => {
+      console.log(`DUSTLINE server on :${port} (ws) — tick ${TICK_RATE}Hz`);
+    });
+  }
 
   return {
     httpServer, wss, registry, persistence,
@@ -150,8 +153,10 @@ export function createServer({ port = SERVER_PORT } = {}) {
       clearInterval(tickInterval);
       clearInterval(heartbeatInterval);
       persistence.close();
-      wss.close();
-      httpServer.close();
+      if (ownsListener) {
+        wss.close();
+        httpServer.close();
+      }
     },
   };
 }

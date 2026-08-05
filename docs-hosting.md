@@ -17,6 +17,30 @@ npm run dev
 
 Open `http://localhost:4173`.
 
+## Same-origin playtest deployment
+
+The production entrypoint is `server/static.js`. It serves the client, portal, changelog, update manifest, and WebSocket game server from one HTTPS origin. This is the easiest first public playtest because the browser automatically uses `wss://<host>` and no separate client endpoint configuration is needed.
+
+### Render
+
+The checked-in `render.yaml` is a one-service deployment definition:
+
+1. Open Render and create a Blueprint from this GitHub repository.
+2. Select `render.yaml`.
+3. Deploy the `dustline-playtest` web service.
+4. Open the generated `https://...onrender.com` URL.
+
+The same service handles static files and WebSockets. Upgrade from the starter plan before public traffic or long idle sessions.
+
+### Fly.io
+
+Use `fly.toml` with the same `Dockerfile.server`:
+
+```bash
+fly launch --no-deploy
+fly deploy
+```
+
 ## Fly server deployment
 
 ```bash

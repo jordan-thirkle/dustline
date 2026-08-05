@@ -5,9 +5,13 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 COPY shared ./shared
 COPY server ./server
+COPY client ./client
+COPY src ./src
+COPY vendor ./vendor
+COPY index.html CHANGELOG.md update.json portal.html progress.html ai-build-archive.md ./
 
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-CMD ["node", "server/index.js"]
+CMD ["node", "server/static.js"]
