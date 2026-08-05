@@ -50,7 +50,9 @@
     }
     #menu .btn:hover { background: #fff2d8; transform: scale(1.03); }
     #menu .btn.secondary { background: transparent; color: var(--hud-line); border: 1px solid var(--hud-line); }
-    #menu .menu-row { display: flex; gap: 12px; }
+    #menu .menu-row { display: flex; gap: 12px; align-items: center; }
+    #menu .mode-label { font-size: 10px; letter-spacing: 3px; color: var(--hud-muted); }
+    #menu #mode-select { background: rgba(13,12,10,0.8); color: var(--hud-line); border: 1px solid rgba(214,198,168,0.35); padding: 8px 12px; font: inherit; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; }
     #menu .controls { display: grid; grid-template-columns: auto auto; gap: 6px 22px; font-size: 13px; letter-spacing: 1px; color: var(--hud-muted); }
     #menu .controls b { color: var(--hud-line); font-weight: 600; }
     #menu .footer { position: absolute; bottom: 22px; font-size: 11px; letter-spacing: 2px; color: rgba(214,198,168,0.35); }
@@ -225,6 +227,16 @@
     <div class="menu-row">
       <button class="btn secondary" id="btn-loadout">Loadout</button>
       <button class="btn secondary" id="btn-settings">Settings</button>
+    </div>
+    <div class="menu-row" id="mode-row">
+      <span class="mode-label">MODE</span>
+      <select id="mode-select">
+        <option value="tdm" selected>TEAM DEATHMATCH</option>
+        <option value="dom">DOMINATION</option>
+        <option value="kc">KILL CONFIRMED</option>
+        <option value="snd">SEARCH &amp; DESTROY</option>
+        <option value="ffa">FREE FOR ALL</option>
+      </select>
     </div>
     <div class="controls">
       <span><b>WASD</b></span><span>Move</span>
