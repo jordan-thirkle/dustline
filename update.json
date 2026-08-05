@@ -1,0 +1,15 @@
+{
+  "latestVersion": "0.2.0",
+  "channel": "playtest",
+  "title": "BYJTT.COM FIELD UPDATE 0.2.0",
+  "summary": "A new boot experience, five selectable modes, safer recovery, and live-service progress tracking are online.",
+  "publishedAt": "2026-08-05",
+  "mandatory": false,
+  "notes": [
+    "Added professional JTT.com splash and loading states.",
+    "Added retry and safe mode when field systems fail.",
+    "Added selectable TDM, Domination, Kill Confirmed, Search & Destroy, and Free For All.",
+    "Added public changelog, progress portal, and reusable AI build archive."
+  ],
+  "minClientVersion": "0.2.0"
+}

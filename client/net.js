@@ -16,6 +16,10 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
     send(t, d) { if (this.ws && this.ws.readyState === 1) this.ws.send(pack(t, d)); },
     connect(name, deviceId, loadout, joinOpts = {}) {
       return new Promise((resolve, reject) => {
+        const welcomeTimeout = setTimeout(() => {
+          this.ws?.close();
+          reject(new Error('MATCH WELCOME TIMEOUT'));
+        }, 15000);
         const proto = location.protocol === 'https:' ? 'wss' : 'ws';
         const ws = new WebSocket(`${proto}://${location.hostname}:${SERVER_PORT}`);
         this.ws = ws;
@@ -25,14 +29,13 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
           this.send(MSG.HELLO, { name, deviceId, loadout });
           // Join immediately — server matchmakes + starts match, then sends WELCOME
           this.send(MSG.JOIN, joinOpts);
-          onStatus && onStatus('online');
-          resolve();
         };
         ws.onmessage = (e) => {
           const m = parse(e.data);
           if (!m) return;
           switch (m.t) {
             case MSG.WELCOME:
+              clearTimeout(welcomeTimeout);
               this.playerId = m.d.playerId;
               onWelcome && onWelcome(m.d);
               onStatus && onStatus('online');

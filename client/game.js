@@ -76,6 +76,7 @@ export function createGame({ container, ui, audio, fx }) {
         game.uiReady && game.ui.hideMenu();
         game.state = 'match';
         game.ui && game.ui.setConnection('online');
+        game.ui && game.ui.setAimCapture && game.ui.setAimCapture(document.pointerLockElement === game.renderer?.domElement);
       },
       onState: (d) => {
         if (!game.local) return;
@@ -125,7 +126,13 @@ export function createGame({ container, ui, audio, fx }) {
         game.audio && game.audio.play && game.audio.play(d.headshot ? 'headshot' : 'hitmarker');
       },
       onError: (d) => { game.ui && game.ui.showToast && game.ui.showToast('Connection error'); },
-      onStatus: (s) => { game.ui && game.ui.setConnection && game.ui.setConnection(s); },
+      onStatus: (s) => {
+        game.ui && game.ui.setConnection && game.ui.setConnection(s);
+        if (s === 'offline' && game.state === 'connecting') {
+          game.state = 'menu';
+          game.ui && game.ui.showMenu && game.ui.showMenu();
+        }
+      },
     });
   };
 
@@ -133,11 +140,19 @@ export function createGame({ container, ui, audio, fx }) {
   function bindInput(game) {
     document.addEventListener('keydown', (e) => {
       game.keys.add(e.code);
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyC', 'Tab'].includes(e.code)) e.preventDefault();
       if (e.code === 'KeyR') game.input.reload = true;
       if (e.code === 'KeyG') game.input.grenade = true;
       if (e.code === 'KeyF') game.input.melee = true;
       if (e.code === 'Tab') { e.preventDefault(); game.ui && game.ui.toggleScoreboard && game.ui.toggleScoreboard(true); }
-      if (e.code === 'Escape') { game.ui && game.ui.toggleScoreboard && game.ui.toggleScoreboard(false); }
+      if (e.code === 'Escape') {
+        game.ui && game.ui.toggleScoreboard && game.ui.toggleScoreboard(false);
+        game.mouse.down = false;
+        game.mouse.rmb = false;
+        game.input.fire = false;
+        game.input.ads = false;
+        if (document.pointerLockElement) document.exitPointerLock?.();
+      }
       if (e.code === 'Enter') { game.ui && game.ui.openChat && game.ui.openChat(); }
     });
     document.addEventListener('keyup', (e) => {
@@ -147,12 +162,17 @@ export function createGame({ container, ui, audio, fx }) {
       if (e.code === 'KeyF') game.input.melee = false;
     });
     document.addEventListener('mousedown', (e) => {
+      if (game.state === 'match' && document.pointerLockElement !== game.renderer?.domElement) game.renderer?.domElement?.requestPointerLock?.();
       if (e.button === 0) { game.mouse.down = true; game.input.fire = true; }
       if (e.button === 2) { game.mouse.rmb = true; game.input.ads = true; }
     });
     document.addEventListener('mouseup', (e) => {
       if (e.button === 0) { game.mouse.down = false; game.input.fire = false; }
       if (e.button === 2) { game.mouse.rmb = false; game.input.ads = false; }
+    });
+    document.addEventListener('pointerlockchange', () => {
+      if (game.state !== 'match') return;
+      game.ui && game.ui.setAimCapture && game.ui.setAimCapture(document.pointerLockElement === game.renderer?.domElement);
     });
     document.addEventListener('mousemove', (e) => {
       if (game.state !== 'match') return;
@@ -306,6 +326,16 @@ export function createGame({ container, ui, audio, fx }) {
     const now = performance.now();
     const dt = Math.min(0.05, (now - (game.lastT || now)) / 1000);
     game.lastT = now;
+
+    // derive movement from the live keyboard state every frame
+    if (game.state === 'match') {
+      game.input.mx = (game.keys.has('KeyD') ? 1 : 0) - (game.keys.has('KeyA') ? 1 : 0);
+      game.input.mz = (game.keys.has('KeyW') ? 1 : 0) - (game.keys.has('KeyS') ? 1 : 0);
+      game.input.sprint = game.keys.has('ShiftLeft') || game.keys.has('ShiftRight');
+      game.input.jump = game.keys.has('Space');
+      game.input.crouch = game.keys.has('KeyC');
+      game.input.slide = game.input.crouch && game.input.sprint;
+    }
 
     // send input at rate
     if (game.state === 'match' && game.net && game.local && game.local.alive) {
