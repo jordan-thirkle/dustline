@@ -143,6 +143,16 @@ export const UI = {
     const dmg = $('#set-dmg'); if (dmg) dmg.addEventListener('change', () => { this.settings.damageNumbers = dmg.checked; this.bindSettings && this.bindSettings(); });
     const invy = $('#set-invy'); if (invy) invy.addEventListener('change', () => { this.settings.invertY = invy.checked; this.bindSettings && this.bindSettings(); });
 
+    // mode select
+    const modeSel = $('#mode-select');
+    if (modeSel) {
+      modeSel.value = localStorage.getItem('dustline_mode') || 'tdm';
+      modeSel.addEventListener('change', () => {
+        localStorage.setItem('dustline_mode', modeSel.value);
+        this.mode = modeSel.value;
+      });
+    }
+
     // scoreboard toggle (Tab handled by game.js; this is display only)
     // chat Enter
     const chatInput = $('#chat-input');

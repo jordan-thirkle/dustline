@@ -58,9 +58,9 @@ export function createServer({ port = SERVER_PORT } = {}) {
       }
       case MSG.JOIN: {
         if (!client.id) return;
-        const { code } = m.d || {};
+        const { code, mode, map } = m.d || {};
         let room = code ? registry.findByCode(code) : null;
-        if (!room) room = registry.findOrCreate('tdm', 'dustline');
+        if (!room) room = registry.findOrCreate(mode || 'tdm', map || 'dustline');
         // leave current
         if (client.room) client.room.removePlayer(client.id);
         const player = makePlayer(client, room);

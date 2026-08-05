@@ -14,7 +14,7 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
     inputs: [],   // unacknowledged inputs
     lastInput: defaultInput(),
     send(t, d) { if (this.ws && this.ws.readyState === 1) this.ws.send(pack(t, d)); },
-    connect(name, deviceId, loadout) {
+    connect(name, deviceId, loadout, joinOpts = {}) {
       return new Promise((resolve, reject) => {
         const proto = location.protocol === 'https:' ? 'wss' : 'ws';
         const ws = new WebSocket(`${proto}://${location.hostname}:${SERVER_PORT}`);
@@ -24,7 +24,7 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
           this.connected = true;
           this.send(MSG.HELLO, { name, deviceId, loadout });
           // Join immediately — server matchmakes + starts match, then sends WELCOME
-          this.send(MSG.JOIN, {});
+          this.send(MSG.JOIN, joinOpts);
           onStatus && onStatus('online');
           resolve();
         };

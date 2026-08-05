@@ -375,7 +375,9 @@ export function createGame({ container, ui, audio, fx }) {
     const name = localStorage.getItem('dustline_name') || 'OPERATIVE';
     const deviceId = localStorage.getItem('dustline_device') || (localStorage.setItem('dustline_device', Math.random().toString(36).slice(2)), localStorage.getItem('dustline_device'));
     const loadout = { primary: 'm4', secondary: 'pistol' };
-    game.net.connect(name, deviceId, loadout).then(() => {
+    const mode = localStorage.getItem('dustline_mode') || 'tdm';
+    const map = 'dustline';
+    game.net.connect(name, deviceId, loadout, { mode, map }).then(() => {
       game.ui && game.ui.showLoading && game.ui.showLoading(100);
       setTimeout(() => game.ui && game.ui.hideLoading && game.ui.hideLoading(), 300);
     }).catch(() => {
