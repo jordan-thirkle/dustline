@@ -182,11 +182,14 @@ export function createViewmodel(scene, camera) {
 function buildGun(id) {
   const w = WEAPONS[id] || WEAPONS.m4;
   const g = new THREE.Group();
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x232220, ...DARK });
-  const receiverMat = new THREE.MeshStandardMaterial({ color: 0x3a3834, ...GREY });
-  const gripMat = new THREE.MeshStandardMaterial({ color: 0x1a1a18, roughness: 0.8 });
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c4a33, ...STOCK });
-  const metalMat = new THREE.MeshStandardMaterial({ color: 0x4a4c4e, ...GREY });
+
+  // Critic-specified material stack: cerakote, polymer, worn metal, wood
+  const cerakote = new THREE.MeshStandardMaterial({ color: 0x262824, roughness: 0.6, metalness: 0.35 });
+  const polymer = new THREE.MeshStandardMaterial({ color: 0x161816, roughness: 0.75, metalness: 0.05 });
+  const wornMetal = new THREE.MeshStandardMaterial({ color: 0x55564e, roughness: 0.55, metalness: 0.6 });
+  const barrelMetal = new THREE.MeshStandardMaterial({ color: 0x3a3b36, roughness: 0.4, metalness: 0.75 });
+  const wood = new THREE.MeshStandardMaterial({ color: 0x4a4035, roughness: 0.85, metalness: 0.05 });
+  const opticGlass = new THREE.MeshStandardMaterial({ color: 0x14181c, roughness: 0.15, metalness: 0.4, emissive: 0x223344, emissiveIntensity: 0.15 });
 
   const part = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => {
     const m = new THREE.Mesh(geo, mat);
@@ -196,72 +199,132 @@ function buildGun(id) {
     g.add(m);
     return m;
   };
+  const box = (mat, w, h, d) => new THREE.BoxGeometry(w, h, d);
+  const cyl = (mat) => null; // placeholder, using part directly below
 
   switch (id) {
     case 'sniper': {
-      part(new THREE.BoxGeometry(0.045, 0.05, 0.5), receiverMat, 0, 0, -0.05);
-      part(new THREE.BoxGeometry(0.03, 0.028, 0.34), metalMat, 0, 0.035, 0.12);
-      part(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 8), metalMat, 0, 0.045, 0.3, Math.PI / 2, 0, 0);
-      part(new THREE.BoxGeometry(0.03, 0.03, 0.12), woodMat, 0, -0.03, -0.22);
-      part(new THREE.BoxGeometry(0.05, 0.09, 0.08), woodMat, 0, -0.07, 0.05);
-      part(new THREE.CylinderGeometry(0.008, 0.008, 0.06, 6), metalMat, 0, -0.03, 0.24);
+      // TAC-50 bolt action
+      part(box(receiverMat, 0.05, 0.055, 0.52), receiverMat, 0, 0, -0.06);
+      part(box(cerakote, 0.042, 0.05, 0.44), cerakote, 0, 0.004, -0.04);
+      part(new THREE.CylinderGeometry(0.014, 0.014, 0.36, 10), barrelMetal, 0, 0.012, 0.22, Math.PI / 2, 0, 0);
+      part(new THREE.CylinderGeometry(0.017, 0.017, 0.08, 10), barrelMetal, 0, 0.012, 0.4, Math.PI / 2, 0, 0);
+      // scope
+      part(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 10), wornMetal, 0, 0.055, 0.02, Math.PI / 2, 0, 0);
+      part(new THREE.CylinderGeometry(0.024, 0.024, 0.07, 10), wornMetal, 0, 0.055, -0.09, Math.PI / 2, 0, 0);
+      part(new THREE.CylinderGeometry(0.016, 0.016, 0.05, 8), opticGlass, 0, 0.055, 0.14, Math.PI / 2, 0, 0);
+      // stock + grip
+      part(box(wood, 0.045, 0.05, 0.16), wood, 0, -0.01, -0.28);
+      part(box(wood, 0.06, 0.1, 0.07), wood, 0, -0.08, 0.06);
+      part(box(polymer, 0.05, 0.09, 0.06), polymer, 0, -0.075, 0.02);
+      // bolt handle
+      part(new THREE.CylinderGeometry(0.005, 0.005, 0.07, 6), wornMetal, 0.03, 0.045, -0.1, 0, 0, Math.PI / 2);
       break;
     }
     case 'shotgun': {
-      part(new THREE.BoxGeometry(0.05, 0.05, 0.34), receiverMat, 0, 0, -0.02);
-      part(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8), metalMat, 0, 0, 0.12, Math.PI / 2, 0, 0);
-      part(new THREE.BoxGeometry(0.04, 0.06, 0.24), woodMat, 0, -0.05, -0.06);
-      part(new THREE.BoxGeometry(0.06, 0.09, 0.06), woodMat, 0, -0.07, 0.08);
+      // M870 pump
+      part(box(cerakote, 0.055, 0.052, 0.4), cerakote, 0, 0, -0.02);
+      part(new THREE.CylinderGeometry(0.02, 0.02, 0.26, 10), barrelMetal, 0, 0.02, 0.16, Math.PI / 2, 0, 0);
+      part(new THREE.CylinderGeometry(0.022, 0.022, 0.09, 10), barrelMetal, 0, 0.02, 0.3, Math.PI / 2, 0, 0);
+      // pump forend
+      part(box(wood, 0.052, 0.06, 0.16), wood, 0, -0.02, 0.06);
+      part(box(wood, 0.07, 0.1, 0.07), wood, 0, -0.07, 0.08);
+      // stock
+      part(box(wood, 0.05, 0.06, 0.14), wood, 0, -0.01, -0.2);
+      // shell tube cap
+      part(new THREE.CylinderGeometry(0.016, 0.016, 0.02, 8), wornMetal, 0, 0.02, 0.32, Math.PI / 2, 0, 0);
       break;
     }
     case 'm249': {
-      part(new THREE.BoxGeometry(0.05, 0.06, 0.46), receiverMat, 0, 0.01, -0.02);
-      part(new THREE.BoxGeometry(0.028, 0.03, 0.36), metalMat, 0, -0.02, 0.12);
-      part(new THREE.BoxGeometry(0.12, 0.12, 0.07), gripMat, 0, -0.09, -0.16);
-      part(new THREE.BoxGeometry(0.05, 0.09, 0.05), gripMat, 0, -0.08, 0.05);
-      part(new THREE.BoxGeometry(0.02, 0.02, 0.1), metalMat, 0, 0.04, -0.2);
+      // SAW LMG
+      part(box(receiverMat, 0.055, 0.06, 0.5), receiverMat, 0, 0.01, -0.02);
+      part(box(cerakote, 0.048, 0.05, 0.44), cerakote, 0, 0.02, -0.02);
+      part(new THREE.CylinderGeometry(0.016, 0.016, 0.4, 10), barrelMetal, 0, 0.0, 0.22, Math.PI / 2, 0, 0);
+      // box mag
+      part(box(polymer, 0.09, 0.16, 0.09), polymer, 0, -0.11, -0.05);
+      // bipod (folded)
+      part(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 6), wornMetal, -0.02, -0.06, 0.14, 0, 0, 0.35);
+      part(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 6), wornMetal, 0.02, -0.06, 0.14, 0, 0, -0.35);
+      // carry handle
+      part(box(polymer, 0.05, 0.06, 0.03), polymer, 0, 0.05, -0.12);
+      // front sight
+      part(box(wornMetal, 0.02, 0.045, 0.015), wornMetal, 0, 0.045, 0.28);
       break;
     }
     case 'ak': {
-      part(new THREE.BoxGeometry(0.04, 0.045, 0.4), receiverMat, 0, 0.005, -0.02);
-      part(new THREE.BoxGeometry(0.026, 0.026, 0.3), metalMat, 0, 0.03, 0.1);
-      part(new THREE.CylinderGeometry(0.01, 0.01, 0.08, 6), metalMat, 0, 0.05, 0.28);
-      part(new THREE.BoxGeometry(0.05, 0.09, 0.06), woodMat, 0, -0.07, 0.05);
-      part(new THREE.BoxGeometry(0.035, 0.045, 0.16), woodMat, 0, -0.02, -0.18);
-      part(new THREE.BoxGeometry(0.02, 0.02, 0.08), metalMat, 0, -0.045, 0.12);
+      // AK-12
+      part(box(receiverMat, 0.045, 0.05, 0.42), receiverMat, 0, 0.005, -0.02);
+      part(box(cerakote, 0.04, 0.045, 0.36), cerakote, 0, 0.01, -0.02);
+      // barrel + gas tube
+      part(new THREE.CylinderGeometry(0.012, 0.012, 0.26, 8), barrelMetal, 0, 0.03, 0.12, Math.PI / 2, 0, 0);
+      part(new THREE.CylinderGeometry(0.014, 0.014, 0.26, 8), barrelMetal, 0, 0.055, 0.12, Math.PI / 2, 0, 0);
+      part(new THREE.CylinderGeometry(0.009, 0.009, 0.05, 6), wornMetal, 0, 0.06, 0.28, Math.PI / 2, 0, 0);
+      // wood furniture
+      part(box(wood, 0.055, 0.1, 0.07), wood, 0, -0.08, 0.06);
+      part(box(wood, 0.045, 0.05, 0.18), wood, 0, -0.01, -0.2);
+      // curved mag
+      part(new THREE.BoxGeometry(0.05, 0.1, 0.07), polymer, 0, -0.085, -0.02);
+      part(new THREE.BoxGeometry(0.045, 0.07, 0.06), polymer, 0, -0.13, 0.0, 0.25);
       break;
     }
     case 'mp5': {
-      part(new THREE.BoxGeometry(0.045, 0.04, 0.32), receiverMat, 0, 0, 0);
-      part(new THREE.BoxGeometry(0.03, 0.028, 0.16), metalMat, 0, 0.035, 0.12);
-      part(new THREE.BoxGeometry(0.045, 0.055, 0.05), gripMat, 0, -0.06, 0.05);
-      part(new THREE.BoxGeometry(0.035, 0.035, 0.1), gripMat, 0, -0.05, -0.12);
-      part(new THREE.BoxGeometry(0.02, 0.02, 0.06), metalMat, 0, -0.04, 0.2);
+      part(box(receiverMat, 0.05, 0.045, 0.34), receiverMat, 0, 0, 0);
+      part(box(cerakote, 0.045, 0.04, 0.3), cerakote, 0, 0.005, 0);
+      part(new THREE.CylinderGeometry(0.011, 0.011, 0.16, 8), barrelMetal, 0, 0.035, 0.16, Math.PI / 2, 0, 0);
+      part(box(polymer, 0.05, 0.06, 0.05), polymer, 0, -0.06, 0.06);
+      part(box(polymer, 0.04, 0.06, 0.07), polymer, 0, -0.05, -0.08);
+      part(box(polymer, 0.045, 0.14, 0.055), polymer, 0, -0.1, 0.0, 0.2);
+      // front sight ring
+      part(new THREE.TorusGeometry(0.014, 0.004, 6, 10), wornMetal, 0, 0.05, 0.2, Math.PI / 2, 0, 0);
       break;
     }
     case 'pistol': {
-      part(new THREE.BoxGeometry(0.035, 0.04, 0.18), receiverMat, 0, 0, 0);
-      part(new THREE.BoxGeometry(0.035, 0.06, 0.06), gripMat, 0, -0.045, 0.06);
-      part(new THREE.BoxGeometry(0.02, 0.02, 0.06), metalMat, 0, 0.03, 0.1);
+      part(box(cerakote, 0.038, 0.042, 0.19), cerakote, 0, 0, 0);
+      part(box(polymer, 0.035, 0.065, 0.07), polymer, 0, -0.05, 0.06);
+      part(box(wornMetal, 0.022, 0.02, 0.07), wornMetal, 0, 0.028, 0.12);
+      // slide serrations
+      part(box(wornMetal, 0.036, 0.012, 0.03), wornMetal, 0, 0.028, -0.02);
       break;
     }
     case 'knife': {
-      part(new THREE.BoxGeometry(0.012, 0.02, 0.2), metalMat, 0, 0, -0.05);
-      part(new THREE.BoxGeometry(0.02, 0.05, 0.05), gripMat, 0, 0, 0.09);
+      part(new THREE.BoxGeometry(0.014, 0.022, 0.22), wornMetal, 0, 0, -0.05);
+      part(new THREE.BoxGeometry(0.016, 0.022, 0.02), wornMetal, 0, 0, -0.16, 0, 0, 0.6);
+      part(new THREE.BoxGeometry(0.024, 0.055, 0.06), polymer, 0, 0, 0.09);
       break;
     }
     default: { // m4
-      part(new THREE.BoxGeometry(0.04, 0.045, 0.38), receiverMat, 0, 0.005, -0.02);
-      part(new THREE.BoxGeometry(0.028, 0.028, 0.24), metalMat, 0, 0.035, 0.1);
-      part(new THREE.CylinderGeometry(0.008, 0.008, 0.06, 6), metalMat, 0, 0.055, 0.26);
-      part(new THREE.BoxGeometry(0.05, 0.09, 0.06), gripMat, 0, -0.07, 0.05);
-      part(new THREE.BoxGeometry(0.04, 0.05, 0.18), gripMat, 0, -0.02, -0.16);
-      part(new THREE.BoxGeometry(0.02, 0.03, 0.08), metalMat, 0, -0.05, 0.14);
-      break;
+      // receiver
+      part(box(receiverMat, 0.045, 0.05, 0.4), receiverMat, 0, 0.005, -0.03);
+      part(box(cerakote, 0.04, 0.045, 0.34), cerakote, 0, 0.01, -0.03);
+      // upper rail
+      part(box(cerakote, 0.032, 0.02, 0.2), cerakote, 0, 0.045, 0.0);
+      // handguard (ventilated)
+      part(new THREE.CylinderGeometry(0.018, 0.018, 0.2, 10), barrelMetal, 0, 0.02, 0.12, Math.PI / 2, 0, 0);
+      part(box(cerakote, 0.04, 0.05, 0.2), cerakote, 0, 0.005, 0.12);
+      // barrel
+      part(new THREE.CylinderGeometry(0.008, 0.008, 0.22, 8), barrelMetal, 0, 0.02, 0.26, Math.PI / 2, 0, 0);
+      // muzzle device (A2 birdcage)
+      part(new THREE.CylinderGeometry(0.012, 0.012, 0.06, 10), wornMetal, 0, 0.02, 0.36, Math.PI / 2, 0, 0);
+      part(new THREE.CylinderGeometry(0.013, 0.013, 0.02, 10), wornMetal, 0, 0.02, 0.39, Math.PI / 2, 0, 0);
+      // front sight post
+      part(new THREE.BoxGeometry(0.014, 0.05, 0.02), wornMetal, 0, 0.05, 0.28);
+      // carry handle + rear sight
+      part(box(cerakote, 0.05, 0.06, 0.04), cerakote, 0, 0.075, -0.12);
+      part(box(wornMetal, 0.03, 0.025, 0.03), wornMetal, 0, 0.065, -0.14);
+      // mag (curved STANAG)
+      part(box(polymer, 0.042, 0.11, 0.06), polymer, 0, -0.09, -0.02);
+      part(box(polymer, 0.04, 0.05, 0.055), polymer, 0, -0.13, 0.0, 0.18);
+      // pistol grip
+      part(box(polymer, 0.045, 0.09, 0.06), polymer, 0, -0.08, 0.06);
+      // stock (collapsible)
+      part(box(polymer, 0.045, 0.05, 0.2), polymer, 0, -0.005, -0.24);
+      part(box(polymer, 0.03, 0.025, 0.06), polymer, 0, 0.005, -0.32);
+      // charging handle
+      part(new THREE.BoxGeometry(0.02, 0.02, 0.04), wornMetal, 0.025, 0.035, -0.14);
     }
   }
   g.userData.muzzle = new THREE.Object3D();
-  g.userData.muzzle.position.set(0, 0.03, 0.34);
+  g.userData.muzzle.position.set(0, 0.02, 0.4);
   g.add(g.userData.muzzle);
   return g;
 }

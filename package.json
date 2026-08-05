@@ -5,14 +5,10 @@
   "type": "module",
   "description": "DUSTLINE - a sun-baked military skirmish FPS built with Three.js. Gauntlet-loop developed.",
   "scripts": {
-    "dev": "vite",
-    "preview": "vite preview",
+    "dev": "python3 -m http.server 4173",
     "serve": "python3 -m http.server 4173",
     "shot": "node tools/shot.js",
     "qa": "node tools/shot.js --qa"
-  },
-  "devDependencies": {
-    "vite": "5.4.21"
   },
   "dependencies": {
     "three": "0.185.1",
