@@ -1,14 +1,14 @@
 // DUSTLINE client entry — boot, wire UI, start.
-import { createGame } from './game.js';
-import { createLocalPlayer } from './net.js';
-import { createSoldier } from './characters.js';
-import { AudioFX } from './audio.js';
-import { FX } from './fx.js';
+import { createGame } from '../client/game.js';
+import { createLocalPlayer } from '../client/net.js';
+import { createSoldier } from '../client/characters.js';
+import { AudioFX } from '../client/audio.js';
+import { FX } from '../client/fx.js';
 
 async function boot() {
   const container = document.getElementById('app');
   const loadbar = document.getElementById('loadbar');
-  const ui = await import('./ui.js').then(m => m.UI);
+  const ui = await import('../client/ui.js').then(m => m.UI);
 
   const fx = FX.init ? FX : null;
   const audio = AudioFX;
@@ -16,6 +16,29 @@ async function boot() {
   const game = createGame({ container, ui, audio, fx });
   game.uiReady = true;
   game.init();
+
+  // wire UI chat + loadout + settings to the game
+  ui.onChatSend = (text) => game.net && game.net.chat && game.net.chat(text);
+  ui.setWeaponList(
+    ['m4', 'ak', 'mp5', 'm249', 'shotgun', 'sniper'],
+    ['pistol', 'knife'],
+    ['m4', 'pistol', 'knife'], // unlocked defaults; server unlocks more
+    { primary: 'm4', secondary: 'pistol' },
+    (loadout) => {
+      game.local && (game.local.weapons = { primary: loadout.primary, secondary: loadout.secondary });
+      game.net && game.net.setLoadout && game.net.setLoadout(loadout);
+    }
+  );
+  // apply settings changes to game
+  const applySettings = () => {
+    const s = ui.getSettings();
+    game.settings = { ...game.settings, ...s };
+    if (game.vm) game.vm.setFov(s.fov);
+    if (game.camera) game.camera.fov = s.fov;
+    audio && audio.setVolume && audio.setVolume(s.volume);
+  };
+  ui.bindSettings = applySettings;
+  applySettings();
 
   // screenshot QA mode: position camera deterministically and hide HUD
   const params = new URLSearchParams(location.search);

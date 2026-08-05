@@ -53,8 +53,7 @@ export function createServer({ port = SERVER_PORT } = {}) {
         client.name = acc.name;
         client.acc = acc;
         if (loadout) persistence.setLoadout(client.deviceId, loadout);
-        wsSend(client, MSG.ERROR, null); // placeholder no-op
-        // Welcome happens on match start; send ack here
+        // Welcome/ack happens on JOIN -> match start
         break;
       }
       case MSG.JOIN: {

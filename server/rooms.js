@@ -37,6 +37,7 @@ export class Room {
     p.room = this;
     p.team = TEAMS.NONE;
     this.players.set(p.id, p);
+    this.fillBots();          // fill to MIN_BOTS immediately so matches can start solo
     this.balanceTeams();
     this.tryStart();
   }

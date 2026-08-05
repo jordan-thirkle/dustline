@@ -11,6 +11,104 @@ export const QUALITY = {
   ultra: { shadows: true, sunShadowMap: 4096, fxaa: true, dust: 1.2, dpr: 2, pop: 400 },
 };
 
+// Procedural dusty pavement texture — macro variation, seams, cracks, grime.
+function pavementTexture() {
+  const S = 512;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+
+  // base dusty concrete
+  const base = [0x8a, 0x84, 0x76];
+  g.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
+  g.fillRect(0, 0, S, S);
+
+  // large macro blotches (mottled wear)
+  for (let i = 0; i < 30; i++) {
+    const x = Math.random() * S, y = Math.random() * S, r = 40 + Math.random() * 90;
+    const grd = g.createRadialGradient(x, y, 2, x, y, r);
+    const tone = 20 + Math.random() * 24;
+    grd.addColorStop(0, `rgba(${tone},${tone - 4},${tone - 10},0.10)`);
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+
+  // fine noise (dust/sand grain)
+  for (let i = 0; i < 14000; i++) {
+    const v = Math.random() * 34 - 17;
+    g.fillStyle = `rgba(${v | 0},${(v * 0.9) | 0},${(v * 0.7) | 0},0.06)`;
+    g.fillRect(Math.random() * S, Math.random() * S, 1.6, 1.6);
+  }
+
+  // concrete slab seams (grid)
+  g.strokeStyle = 'rgba(50,46,40,0.5)';
+  g.lineWidth = 2.5;
+  for (let i = 0; i <= 4; i++) {
+    const p = (i / 4) * S;
+    g.beginPath(); g.moveTo(p, 0); g.lineTo(p, S); g.stroke();
+    g.beginPath(); g.moveTo(0, p); g.lineTo(S, p); g.stroke();
+  }
+  // seam shadow (one side darker)
+  g.strokeStyle = 'rgba(30,28,24,0.4)';
+  g.lineWidth = 3;
+  for (let i = 1; i <= 4; i++) {
+    const p = (i / 4) * S + 2;
+    g.beginPath(); g.moveTo(p, 0); g.lineTo(p, S); g.stroke();
+    g.beginPath(); g.moveTo(0, p); g.lineTo(S, p); g.stroke();
+  }
+
+  // cracks
+  g.strokeStyle = 'rgba(40,36,30,0.55)';
+  for (let i = 0; i < 12; i++) {
+    g.lineWidth = 1 + Math.random() * 1.4;
+    g.beginPath();
+    let x = Math.random() * S, y = Math.random() * S;
+    g.moveTo(x, y);
+    const steps = 6 + (Math.random() * 8 | 0);
+    for (let s = 0; s < steps; s++) {
+      x += (Math.random() - 0.5) * 40;
+      y += (Math.random() - 0.5) * 40;
+      g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+
+  // dirt accumulation in seams + grime
+  g.fillStyle = 'rgba(60,52,40,0.18)';
+  for (let i = 0; i < 26; i++) {
+    const x = Math.random() * S, y = Math.random() * S, r = 8 + Math.random() * 26;
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  // tire/traffic wear bands
+  g.fillStyle = 'rgba(70,64,52,0.14)';
+  g.fillRect(0, S * 0.3, S, 26);
+  g.fillRect(0, S * 0.72, S, 20);
+
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(18, 18);
+  t.anisotropy = 8;
+  return t;
+}
+
+// Soft radial gradient for contact-shadow blobs under props.
+function contactShadowTexture() {
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, S / 2);
+  grd.addColorStop(0, 'rgba(0,0,0,1)');
+  grd.addColorStop(0.55, 'rgba(0,0,0,0.65)');
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, S, S);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4;
+  return t;
+}
+
 export function createRenderer(container, quality = QUALITY.high) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.dpr));
@@ -62,55 +160,90 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   const light = map.light;
 
   // Fog + background match the dusty sky
-  scene.fog = new THREE.Fog(light.fog[0], light.fog[1], light.fog[2], light.fogNear, light.fogFar);
+  scene.fog = new THREE.Fog(light.fog[0], light.fog[1], light.fog[2], light.fogNear * 0.55, light.fogFar);
   scene.background = new THREE.Color(light.sky[0], light.sky[1], light.sky[2]);
 
-  // Sun
-  const sun = new THREE.DirectionalLight(0xffe6c2, light.sunIntensity);
-  sun.position.set(70, 95, 40);
+  // Sun — authored directional key per the gauntlet critic: low angle, warm,
+  // cool fill at ~25% of key, 2048 shadows, strong authority.
+  const sun = new THREE.DirectionalLight(0xffe0b8, 4.0);
+  sun.position.set(40, 55, 18);   // lower angle = longer shadows = more hierarchy
   sun.castShadow = quality.shadows;
   if (quality.shadows) {
     sun.shadow.mapSize.set(quality.sunShadowMap, quality.sunShadowMap);
-    const d = 85;
+    const d = 90;
     sun.shadow.camera.left = -d; sun.shadow.camera.right = d;
     sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d;
-    sun.shadow.camera.near = 10; sun.shadow.camera.far = 260;
-    sun.shadow.bias = -0.0006;
-    sun.shadow.normalBias = 0.02;
+    sun.shadow.camera.near = 10; sun.shadow.camera.far = 280;
+    sun.shadow.bias = -0.0003;
+    sun.shadow.normalBias = 0.015;
+    sun.shadow.radius = 4;   // soft penumbra
   }
   scene.add(sun);
   scene.add(sun.target);
 
-  // Hemisphere + fill for baked daylight feel
-  const hemi = new THREE.HemisphereLight(0xfff2dd, 0x6b5f4d, 0.55);
+  // Hemisphere + cool fill at ~25% of key (critic: 20-30% fill, warm key)
+  const hemi = new THREE.HemisphereLight(0xfff0da, 0x3a4a5a, 0.42);
   scene.add(hemi);
-  const fill = new THREE.DirectionalLight(0xb8c4ff, 0.22);
+  const fill = new THREE.DirectionalLight(0x8fb8e8, 0.7);
   fill.position.set(-60, 40, -70);
   scene.add(fill);
+
+  // subtle bounce light from ground
+  const bounce = new THREE.DirectionalLight(0xc8b690, 0.4);
+  bounce.position.set(0, -10, 0);
+  scene.add(bounce);
 
   const worldGroup = new THREE.Group();
   scene.add(worldGroup);
 
-  // Ground
+  // Ground — dusty pavement (critic: layered surface, not a clean plane)
   const groundMat = new THREE.MeshStandardMaterial({
-    color: 0xb3a68e,
-    roughness: 0.94,
+    color: 0x9a938a,
+    roughness: 0.82,
     metalness: 0.0,
-    map: noiseTexture(256),
+    map: pavementTexture(),
+    bumpMap: pavementTexture(),
+    bumpScale: 0.6,
   });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(map.bounds[2] * 2 + 40, map.bounds[3] * 2 + 40), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   worldGroup.add(ground);
 
-  // Faded ground texture variation: subtle large blotches via second overlay
-  const blotch = new THREE.Mesh(
-    new THREE.PlaneGeometry(map.bounds[2] * 2 + 40, map.bounds[3] * 2 + 40),
-    new THREE.MeshBasicMaterial({ color: 0x9a8d74, transparent: true, opacity: 0.18, depthWrite: false })
-  );
-  blotch.rotation.x = -Math.PI / 2;
-  blotch.position.y = 0.01;
-  worldGroup.add(blotch);
+  // Dirt decal patches + contact shadow blobs (authored wear: under props,
+  // against wall bases — not uniform detail).
+  const dirtDecals = new THREE.Group();
+  const blobTex = contactShadowTexture();
+  map.objects.forEach((o) => {
+    // contact shadow under the prop
+    const blob = new THREE.Mesh(
+      new THREE.PlaneGeometry(Math.max(o.w, o.d) * 1.15, Math.max(o.w, o.d) * 1.15),
+      new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, opacity: 0.5, depthWrite: false })
+    );
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(o.x, 0.03, o.z);
+    dirtDecals.add(blob);
+    // dirt stain around the base
+    const decal = new THREE.Mesh(
+      new THREE.PlaneGeometry(Math.min(o.w + 1.6, 9), Math.min(o.d + 1.6, 9)),
+      new THREE.MeshBasicMaterial({ color: 0x5a4f3e, transparent: true, opacity: 0.14, depthWrite: false })
+    );
+    decal.rotation.x = -Math.PI / 2;
+    decal.position.set(o.x, 0.02, o.z);
+    dirtDecals.add(decal);
+  });
+  worldGroup.add(dirtDecals);
+
+  // Wall-base grime band — darkens the bottom 0.6m of walls (critic: 0.3-1.2m band)
+  map.objects.forEach((o) => {
+    if (o.kind !== 'wall' && o.kind !== 'crate' && o.kind !== 'tower') return;
+    const grime = new THREE.Mesh(
+      new THREE.BoxGeometry(o.w + 0.05, 0.6, o.d + 0.05),
+      new THREE.MeshBasicMaterial({ color: 0x3f382c, transparent: true, opacity: 0.18, depthWrite: false })
+    );
+    grime.position.set(o.x, 0.3, o.z);
+    worldGroup.add(grime);
+  });
 
   // Buildings & cover from shared map data
   const colliders = aabbs(map);

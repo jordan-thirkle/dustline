@@ -1,0 +1,170 @@
+{
+  "1hapnpy7z7lh": {
+    "deviceId": "1hapnpy7z7lh",
+    "name": "OPERATIVE",
+    "totalXp": 0,
+    "stats": {
+      "kills": 0,
+      "deaths": 0,
+      "assists": 0,
+      "headshots": 0,
+      "wins": 0,
+      "losses": 0,
+      "games": 0,
+      "score": 0,
+      "timePlayed": 0,
+      "bestStreak": 0
+    },
+    "loadout": {
+      "primary": "m4",
+      "secondary": "pistol"
+    },
+    "unlockedWeapons": [
+      "m4",
+      "pistol",
+      "knife"
+    ],
+    "prestige": 0,
+    "lastSeen": 1785909090611
+  },
+  "tnmqwfi2nwb": {
+    "deviceId": "tnmqwfi2nwb",
+    "name": "OPERATIVE",
+    "totalXp": 0,
+    "stats": {
+      "kills": 0,
+      "deaths": 0,
+      "assists": 0,
+      "headshots": 0,
+      "wins": 0,
+      "losses": 0,
+      "games": 0,
+      "score": 0,
+      "timePlayed": 0,
+      "bestStreak": 0
+    },
+    "loadout": {
+      "primary": "m4",
+      "secondary": "pistol"
+    },
+    "unlockedWeapons": [
+      "m4",
+      "pistol",
+      "knife"
+    ],
+    "prestige": 0,
+    "lastSeen": 1785909488832
+  },
+  "v3wdm6fa2jr": {
+    "deviceId": "v3wdm6fa2jr",
+    "name": "OPERATIVE",
+    "totalXp": 0,
+    "stats": {
+      "kills": 0,
+      "deaths": 0,
+      "assists": 0,
+      "headshots": 0,
+      "wins": 0,
+      "losses": 0,
+      "games": 0,
+      "score": 0,
+      "timePlayed": 0,
+      "bestStreak": 0
+    },
+    "loadout": {
+      "primary": "m4",
+      "secondary": "pistol"
+    },
+    "unlockedWeapons": [
+      "m4",
+      "pistol",
+      "knife"
+    ],
+    "prestige": 0,
+    "lastSeen": 1785909540134
+  },
+  "2hoa4v30oa5": {
+    "deviceId": "2hoa4v30oa5",
+    "name": "OPERATIVE",
+    "totalXp": 0,
+    "stats": {
+      "kills": 0,
+      "deaths": 0,
+      "assists": 0,
+      "headshots": 0,
+      "wins": 0,
+      "losses": 0,
+      "games": 0,
+      "score": 0,
+      "timePlayed": 0,
+      "bestStreak": 0
+    },
+    "loadout": {
+      "primary": "m4",
+      "secondary": "pistol"
+    },
+    "unlockedWeapons": [
+      "m4",
+      "pistol",
+      "knife"
+    ],
+    "prestige": 0,
+    "lastSeen": 1785909572277
+  },
+  "dev123": {
+    "deviceId": "dev123",
+    "name": "OPERATIVE",
+    "totalXp": 0,
+    "stats": {
+      "kills": 0,
+      "deaths": 0,
+      "assists": 0,
+      "headshots": 0,
+      "wins": 0,
+      "losses": 0,
+      "games": 0,
+      "score": 0,
+      "timePlayed": 0,
+      "bestStreak": 0
+    },
+    "loadout": {
+      "primary": "m4",
+      "secondary": "pistol"
+    },
+    "unlockedWeapons": [
+      "m4",
+      "pistol",
+      "knife"
+    ],
+    "prestige": 0,
+    "lastSeen": 1785909589321
+  },
+  "dev124": {
+    "deviceId": "dev124",
+    "name": "OPERATIVE",
+    "totalXp": 0,
+    "stats": {
+      "kills": 0,
+      "deaths": 0,
+      "assists": 0,
+      "headshots": 0,
+      "wins": 0,
+      "losses": 0,
+      "games": 0,
+      "score": 0,
+      "timePlayed": 0,
+      "bestStreak": 0
+    },
+    "loadout": {
+      "primary": "m4",
+      "secondary": "pistol"
+    },
+    "unlockedWeapons": [
+      "m4",
+      "pistol",
+      "knife"
+    ],
+    "prestige": 0,
+    "lastSeen": 1785909615278
+  }
+}

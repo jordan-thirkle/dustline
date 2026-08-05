@@ -23,6 +23,10 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
         ws.onopen = () => {
           this.connected = true;
           this.send(MSG.HELLO, { name, deviceId, loadout });
+          // Join immediately — server matchmakes + starts match, then sends WELCOME
+          this.send(MSG.JOIN, {});
+          onStatus && onStatus('online');
+          resolve();
         };
         ws.onmessage = (e) => {
           const m = parse(e.data);

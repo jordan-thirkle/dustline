@@ -378,7 +378,6 @@ export function createGame({ container, ui, audio, fx }) {
     game.net.connect(name, deviceId, loadout).then(() => {
       game.ui && game.ui.showLoading && game.ui.showLoading(100);
       setTimeout(() => game.ui && game.ui.hideLoading && game.ui.hideLoading(), 300);
-      game.net.join && game.net.join();
     }).catch(() => {
       game.ui && game.ui.showToast && game.ui.showToast('Could not reach server');
       game.state = 'menu';
