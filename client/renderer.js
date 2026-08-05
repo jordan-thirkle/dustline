@@ -127,7 +127,7 @@ export function createRenderer(container, quality = QUALITY.high) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.dpr));
   renderer.setSize(container.clientWidth || window.innerWidth, container.clientHeight || window.innerHeight);
   renderer.shadowMap.enabled = quality.shadows;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap; // PCFSoftShadowMap deprecated in r185
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.35;   // punchier key-to-shadow separation
   renderer.outputColorSpace = THREE.SRGBColorSpace;

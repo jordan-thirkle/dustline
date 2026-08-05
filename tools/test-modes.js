@@ -1,6 +1,6 @@
 import { createServer } from '../server/index.js';
 
-const server = createServer({ port: 0 });
+const server = await createServer({ port: 0 });
 const modes = ['tdm', 'dom', 'kc', 'snd', 'ffa'];
 
 try {

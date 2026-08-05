@@ -15,12 +15,13 @@ const BOT_NAMES = [
 ];
 
 export class Room {
-  constructor({ id, code, mode, map, maxPlayers }) {
+  constructor({ id, code, mode, map, maxPlayers, persistence = null }) {
     this.id = id;
     this.code = code || makeRoomCode();
     this.mode = mode || DEFAULT_MODE;
     this.map = map || DEFAULT_MAP;
     this.maxPlayers = maxPlayers || 12;
+    this.persistence = persistence;
     this.players = new Map();  // id -> player
     this.state = 'lobby';
     this.sim = null;
@@ -103,6 +104,23 @@ export class Room {
       map: this.map,
       onBroadcast: (t, d) => this.broadcastToAll(t, d),
       onMessage: (playerId, t, d) => this.sendTo(playerId, t, d),
+      onMatchEnd: async (results) => {
+        for (const { player, won } of results) {
+          if (player.isBot || !this.persistence) continue;
+          try {
+            await this.persistence.applyMatchResult(player.deviceId, {
+              kills: player.kills || 0,
+              deaths: player.deaths || 0,
+              assists: player.assists || 0,
+              won: !!won,
+              score: player.score || 0,
+              xp: player.matchXp || 0,
+            });
+          } catch (e) {
+            console.error('[persistence] match result save failed for', player.deviceId, e.message);
+          }
+        }
+      },
     });
     for (const p of this.players.values()) {
       p.alive = false;
@@ -225,7 +243,7 @@ export class RoomRegistry {
 
   create(mode, map) {
     const id = 'room-' + this.idCounter++;
-    const room = new Room({ id, mode, map, maxPlayers: 12 });
+    const room = new Room({ id, mode, map, maxPlayers: 12, persistence: this.persistence });
     this.rooms.set(id, room);
     return room;
   }

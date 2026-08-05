@@ -70,6 +70,9 @@ async function boot() {
   setBootProgress(68, 'CALIBRATING COMBAT', 'LOADING WEAPONS, MOVEMENT, AND CONTACT');
   ui.onChatSend = (text) => game.net && game.net.chat && game.net.chat(text);
   ui.onRetry = () => game.start();
+  ui.onLogin = (u, p) => { audio && audio.play && audio.play('click'); game.login(u, p); };
+  ui.onSignup = (u, p) => { audio && audio.play && audio.play('click'); game.signup(u, p); };
+  ui.onLogout = () => { audio && audio.play && audio.play('click'); game.logout(); };
   ui.setWeaponList(
     ['m4', 'ak', 'mp5', 'm249', 'shotgun', 'sniper'],
     ['pistol', 'knife'],
@@ -144,6 +147,20 @@ async function boot() {
 
   window.__DUSTLINE__ = game;
   if (!cam) ui.showMenu();
+
+  // Restore a saved session token in the background so returning players see their account.
+  const savedToken = localStorage.getItem('dustline_token');
+  if (!cam && savedToken) {
+    if (!game.net) game.setupNet();
+    game.sessionToken = savedToken;
+    game.net.token = savedToken;
+    game.net.authConnect().then(() => {
+      game.net.restoreSession(savedToken);
+    }).catch(() => {
+      // server unreachable at boot — leave token for the next deploy attempt
+    });
+  }
+
   if (!cam) fetch('/update.json', { cache: 'no-store' }).then((response) => response.ok ? response.json() : null).then((update) => {
     if (!update || !update.latestVersion) return;
     const seen = localStorage.getItem('dustline_seen_version');

@@ -5,35 +5,67 @@ import { integratePlayer, STANCE, eyeHeight } from '../shared/movement.js';
 import { WEAPONS } from '../shared/weapons.js';
 import { damp, lerp, angleLerp } from '../shared/math.js';
 
-export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScore, onXp, onMatchEnd, onRoom, onChat, onDamage, onHit, onError, onStatus }) {
+export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScore, onXp, onMatchEnd, onRoom, onChat, onDamage, onHit, onError, onStatus, onAuth }) {
   const net = {
     ws: null,
     playerId: null,
     connected: false,
+    token: null,
     inputSeq: 0,
     inputs: [],   // unacknowledged inputs
     lastInput: defaultInput(),
     send(t, d) { if (this.ws && this.ws.readyState === 1) this.ws.send(pack(t, d)); },
+    // Auth helpers — open a channel, authenticate, and hand back the socket
+    authConnect() {
+      return new Promise((resolve, reject) => {
+        const endpoint = resolveEndpoint();
+        const ws = new WebSocket(endpoint);
+        this.ws = ws;
+        const timeout = setTimeout(() => { ws.close(); reject(new Error('AUTH TIMEOUT')); }, 10000);
+        ws.onopen = () => {
+          this.connected = true;
+          onStatus && onStatus('connecting');
+          resolve(ws);
+        };
+        ws.onmessage = (e) => {
+          const m = parse(e.data);
+          if (m && m.t === MSG.AUTH) {
+            if (m.d && m.d.ok) { this.token = m.d.token || this.token; onAuth && onAuth(m.d); }
+            else onError && onError({ msg: m.d?.msg || 'auth_failed' });
+          }
+        };
+        ws.onerror = () => { clearTimeout(timeout); onError && onError({ msg: 'net_error' }); };
+        ws.onclose = () => { clearTimeout(timeout); this.connected = false; onStatus && onStatus('offline'); };
+      });
+    },
+    signup(username, password) {
+      this.send(MSG.SIGNUP, { username, password });
+    },
+    login(username, password) {
+      this.send(MSG.LOGIN, { username, password });
+    },
+    restoreSession(token) {
+      this.send(MSG.SESSION, { token });
+    },
+    logout() {
+      this.send(MSG.LOGOUT, { token: this.token });
+      this.token = null;
+    },
     connect(name, deviceId, loadout, joinOpts = {}) {
       return new Promise((resolve, reject) => {
         const welcomeTimeout = setTimeout(() => {
           this.ws?.close();
           reject(new Error('MATCH WELCOME TIMEOUT'));
         }, 15000);
-        const configured = globalThis.DUSTLINE_CONFIG?.gameServerUrl?.trim();
-        const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-        const localDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        const endpoint = configured
-          ? configured.replace(/^http/, 'ws').replace(/\/$/, '')
-          : localDev && location.port === '4173'
-            ? `${proto}://${location.hostname}:${SERVER_PORT}`
-            : `${proto}://${location.host}`;
+        const endpoint = resolveEndpoint();
         const ws = new WebSocket(endpoint);
         this.ws = ws;
         onStatus && onStatus('connecting');
         ws.onopen = () => {
           this.connected = true;
           this.send(MSG.HELLO, { name, deviceId, loadout });
+          // If we have a session token, restore it (links this device to the account)
+          if (this.token) this.send(MSG.SESSION, { token: this.token });
           // Join immediately — server matchmakes + starts match, then sends WELCOME
           this.send(MSG.JOIN, joinOpts);
         };
@@ -59,6 +91,7 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
             case MSG.DAMAGE: onDamage && onDamage(m.d); break;
             case MSG.HIT: onHit && onHit(m.d); break;
             case MSG.ERROR: onError && onError(m.d); break;
+            case MSG.AUTH: if (m.d?.ok) { this.token = m.d.token || this.token; onAuth && onAuth(m.d); } break;
             case MSG.PONG: /* rtt calc handled in loop */ break;
             default: break;
           }
@@ -82,6 +115,17 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
     disconnect() { if (this.ws) this.ws.close(); },
   };
   return net;
+}
+
+export function resolveEndpoint() {
+  const configured = globalThis.DUSTLINE_CONFIG?.gameServerUrl?.trim();
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const localDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  return configured
+    ? configured.replace(/^http/, 'ws').replace(/\/$/, '')
+    : localDev && location.port === '4173'
+      ? `${proto}://${location.hostname}:${SERVER_PORT}`
+      : `${proto}://${location.host}`;
 }
 
 export function defaultInput() {

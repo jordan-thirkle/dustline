@@ -2,6 +2,29 @@
 
 All notable changes to DUSTLINE are documented here.
 
+## [0.3.0] — 2026-08-05
+
+### Added
+
+- Operative accounts: sign up / sign in / log out from the in-game menu, with session restore on reconnect.
+- Postgres-backed account persistence via Fly Managed Postgres (`server/pgstore.js`), with a JSON file fallback for local dev.
+- Match-result persistence: XP, stats, and score are written to the account at the end of every match.
+- `server/auth.js` — scrypt password hashing and session tokens (30-day sessions).
+
+### Fixed
+
+- Combat crash: a missing `hx` reference in the tracer event crashed the server whenever a shot missed. Tracers now use the last ray direction.
+- `Dockerfile.server` now copies `runtime-config.js` (was 404 in production).
+- `PCFSoftShadowMap` deprecated in three r185 → `PCFShadowMap`.
+- Signup response now includes the chosen username.
+- `tools/test-modes.js` awaits the async `createServer` bootstrap.
+
+### Operations
+
+- Fly Managed Postgres provisioned and attached (`DATABASE_URL` secret on `dustline-server`).
+- `GAME_SERVER_URL` repo variable set to the Fly endpoint for GitHub Pages cross-origin play.
+- Removed stray Fly-generated `Dockerfile`/`.dockerignore` that conflicted with `Dockerfile.server`.
+
 ## [0.2.0] — 2026-08-05
 
 ### Added

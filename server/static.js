@@ -40,12 +40,16 @@ const httpServer = http.createServer(async (req, res) => {
 });
 
 const wss = new WebSocketServer({ server: httpServer, path: '/' });
-const game = createServer({ server: httpServer, wss });
+let game = null;
+createServer({ server: httpServer, wss }).then((g) => { game = g; }).catch((e) => {
+  console.error('[DUSTLINE] server init failed', e);
+  process.exit(1);
+});
 
 httpServer.listen(PORT, () => console.log(`DUSTLINE production server on :${PORT}`));
 
 process.on('SIGTERM', () => {
-  game.close();
+  if (game) game.close();
   wss.close();
   httpServer.close(() => process.exit(0));
 });

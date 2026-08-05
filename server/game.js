@@ -13,7 +13,7 @@ const BODY_R = 0.42;     // body hit radius
 const HEAD_R = 0.16;
 
 export class GameSim {
-  constructor({ mode, map, onBroadcast, onMessage }) {
+  constructor({ mode, map, onBroadcast, onMessage, onMatchEnd }) {
     this.modeId = mode;
     this.mapId = map;
     this.map = mapById(map);
@@ -21,6 +21,7 @@ export class GameSim {
     this.world = { colliders: aabbs(this.map), bounds: this.map.bounds, groundY: () => 0 };
     this.onBroadcast = onBroadcast;   // (msgType, data, opts) => broadcast to players
     this.onMessage = onMessage;       // player-bound sends handled by room layer
+    this.onMatchEnd = onMatchEnd;     // (matchSummary) => persist results
     this.players = new Map();
     this.entities = [];               // tags, bombs, care packages
     this.flags = {};                  // dom
@@ -275,9 +276,10 @@ export class GameSim {
     // recoil decays naturally via pitch clamp in stepPlayer (pitch applied to sim)
 
     const pellets = pelletsFor(w);
-    let hitAny = false, totalDmg = 0, lastHitPoint = null;
+    let hitAny = false, totalDmg = 0, lastHitPoint = null, lastRay = null;
     for (let i = 0; i < pellets; i++) {
       const [hx, hy, hz] = this.rayFromPlayer(p, totalSpread * (i === 0 ? 0.4 : 1), i);
+      lastRay = [hx, hy, hz];
       const hit = this.raycast(p.pos[0], p.pos[1] + 1.5, p.pos[2], hx, hy, hz, p, w);
       if (hit) {
         hitAny = true;
@@ -290,11 +292,8 @@ export class GameSim {
       }
     }
     // tracer event
-    if (lastHitPoint) {
-      this.pushEvent({ type: 'tracer', x: p.pos[0], y: p.pos[1] + 1.5, z: p.pos[2], tx: lastHitPoint[0], ty: lastHitPoint[1], tz: lastHitPoint[2], owner: p.id, weapon: p.weapon });
-    } else {
-      this.pushEvent({ type: 'tracer', x: p.pos[0], y: p.pos[1] + 1.5, z: p.pos[2], tx: hx, ty: hy, tz: hz, owner: p.id, weapon: p.weapon });
-    }
+    const [tx, ty, tz] = lastHitPoint || lastRay || [p.pos[0], p.pos[1] + 1.5, p.pos[2]];
+    this.pushEvent({ type: 'tracer', x: p.pos[0], y: p.pos[1] + 1.5, z: p.pos[2], tx, ty, tz, owner: p.id, weapon: p.weapon });
     // muzzle event
     this.pushEvent({ type: 'muzzle', x: p.pos[0], y: p.pos[1] + 1.5, z: p.pos[2], owner: p.id, weapon: p.weapon });
 
@@ -608,6 +607,7 @@ export class GameSim {
     if (!p || amount <= 0) return;
     const before = levelFromXp(p.totalXp);
     p.totalXp += amount;
+    p.matchXp = (p.matchXp || 0) + amount;
     const after = levelFromXp(p.totalXp);
     const unlocks = [];
     if (after > before) {
@@ -635,10 +635,13 @@ export class GameSim {
       ? mvp
       : (this.scores.tan > this.scores.green ? { name: TEAMS_NAMES['1'] } : { name: TEAMS_NAMES['2'] });
     // xp for match
+    const results = [];
     for (const p of this.players.values()) {
       const won = this.mode.id === 'ffa' ? (p === mvp) : (p.team === (this.scores.tan > this.scores.green ? TEAMS.TAN : TEAMS.GREEN));
       this.addXp(p, won ? XP.WIN : XP.LOSE, won ? 'win' : 'loss');
+      results.push({ player: p, won });
     }
+    this.onMatchEnd && this.onMatchEnd(results);
     this.onBroadcast(MSG.MATCH_END, {
       winner: winner.name,
       scores: this.scores,

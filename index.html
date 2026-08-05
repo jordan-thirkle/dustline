@@ -190,6 +190,22 @@
     .set-row select { background: rgba(13,12,10,0.8); color: var(--hud-line); border: 1px solid rgba(214,198,168,0.35); padding: 4px 8px; font: inherit; }
     .set-row input[type=checkbox] { accent-color: var(--hud-line); width: 16px; height: 16px; }
 
+    #account-panel .panel-title { font-size: 22px; letter-spacing: 6px; }
+    .acct-form { display: flex; flex-direction: column; gap: 8px; width: 300px; }
+    .acct-form label { font-size: 10px; letter-spacing: 3px; color: var(--hud-muted); text-transform: uppercase; margin-top: 6px; }
+    .acct-form input {
+      font: inherit; font-size: 14px; letter-spacing: 1px; color: var(--hud-line);
+      background: rgba(16,15,13,0.8); border: 1px solid rgba(214,198,168,0.35); padding: 10px 12px;
+    }
+    .acct-form input:focus { outline: none; border-color: var(--hud-line); }
+    .acct-row { display: flex; gap: 10px; margin-top: 14px; justify-content: center; }
+    .acct-msg { min-height: 16px; font-size: 11px; letter-spacing: 1px; color: var(--warn); text-align: center; margin-top: 4px; }
+    .acct-hint { font-size: 11px; letter-spacing: 1px; color: var(--hud-muted); text-align: center; line-height: 1.5; margin-top: 10px; }
+    .acct-welcome { font-size: 18px; letter-spacing: 3px; color: var(--hud-line); text-align: center; }
+    .acct-welcome b { color: #fff; }
+    .acct-meta { font-size: 12px; letter-spacing: 2px; color: var(--hud-muted); text-align: center; margin-top: 8px; }
+    .btn.secondary { background: transparent; border: 1px solid rgba(214,198,168,0.45); color: var(--hud-line); }
+
     #scoreboard.overlay {
       position: fixed; inset: 0; z-index: 40; background: rgba(13,12,10,0.8);
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
@@ -272,7 +288,7 @@
   <div id="loading" aria-live="polite">
     <div class="scene-mark"></div>
     <div class="corner tl">BYJTT / FIELD SYSTEMS 01</div>
-    <div class="corner br">BUILD 0.1.0 · WEBGL</div>
+    <div class="corner br">BUILD 0.3.0 · WEBGL</div>
     <div class="loading-content">
       <div class="publisher"><span class="publisher-mark" aria-hidden="true"></span><span>A <b>BYJTT.COM</b> PRODUCTION</span></div>
       <div class="logo-lockup"><div class="logo">DUSTLINE</div></div>
@@ -317,7 +333,7 @@
       <span><b>Tab</b></span><span>Scoreboard</span>
       <span><b>Esc</b></span><span>Release cursor</span>
     </div>
-    <div class="footer">BYJTT.COM · PLAYTEST 0.2.0 · FIELD SYSTEMS ONLINE</div>
+    <div class="footer">BYJTT.COM · PLAYTEST 0.3.0 · FIELD SYSTEMS ONLINE</div>
   </div>
 
   <div id="hud" class="hidden">

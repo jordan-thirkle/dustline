@@ -1,19 +1,40 @@
 // DUSTLINE server entry — HTTP + WebSocket, room registry, persistence,
-// input routing, chat, heartbeat. Run: node server/index.js
+// auth (username/password + sessions), input routing, chat, heartbeat.
+// Run: node server/index.js   (uses Postgres when DATABASE_URL is set)
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
 import { MSG, pack, parse, SERVER_PORT, TICK_RATE, TEAMS, makeRoomCode } from '../shared/protocol.js';
 import { RoomRegistry } from './rooms.js';
 import { Persistence } from './persistence.js';
+import { connectPostgres, initSchema } from './pgstore.js';
+import { hashPassword, verifyPassword, newSessionToken } from './auth.js';
 import { levelFromXp, UNLOCKS, newStats } from '../shared/progression.js';
 
 const TICK_MS = 1000 / TICK_RATE;
 const PING_INTERVAL = 5000;
+const SESSION_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 
-export function createServer({ port = SERVER_PORT, server: providedServer = null, wss: providedWss = null } = {}) {
+export async function createServer({ port = SERVER_PORT, server: providedServer = null, wss: providedWss = null } = {}) {
   const registry = new RoomRegistry();
-  const persistence = new Persistence();
-  const clients = new Map(); // ws -> { id, deviceId, name, room, acc, ping }
+  registry.persistence = null; // set below once persistence is ready
+
+  // Postgres when DATABASE_URL present, else JSON file fallback
+  const databaseUrl = process.env.DATABASE_URL;
+  let pool = null;
+  if (databaseUrl) {
+    try {
+      pool = await connectPostgres(databaseUrl);
+      await initSchema(pool);
+      console.log('[persistence] Postgres connected');
+    } catch (e) {
+      console.error('[persistence] Postgres unavailable, falling back to JSON store:', e.message);
+      pool = null;
+    }
+  }
+  const persistence = new Persistence({ pool });
+  registry.persistence = persistence;
+
+  const clients = new Map(); // ws -> { id, deviceId, name, room, acc, ping, token }
 
   const httpServer = providedServer || http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
@@ -24,7 +45,7 @@ export function createServer({ port = SERVER_PORT, server: providedServer = null
   let ownsListener = !providedServer;
 
   wss.on('connection', (ws) => {
-    const client = { ws, id: null, deviceId: null, name: null, room: null, acc: null, ping: 0, lastPing: 0 };
+    const client = { ws, id: null, deviceId: null, name: null, room: null, acc: null, ping: 0, lastPing: 0, token: null };
     clients.set(ws, client);
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
@@ -33,7 +54,10 @@ export function createServer({ port = SERVER_PORT, server: providedServer = null
       const m = parse(raw.toString());
       if (!m || !m.t) return;
       ws.isAlive = true;
-      handleMessage(client, m);
+      handleMessage(client, m).catch((e) => {
+        console.error('[DUSTLINE] message handler error', m.t, e.message);
+        wsSend(client, MSG.ERROR, { msg: 'internal_error' });
+      });
     });
 
     ws.on('close', () => {
@@ -44,16 +68,79 @@ export function createServer({ port = SERVER_PORT, server: providedServer = null
     });
   });
 
-  function handleMessage(client, m) {
+  async function handleMessage(client, m) {
     switch (m.t) {
+      case MSG.LOGIN: {
+        const { username, password } = m.d || {};
+        const acc = await persistence.getAccountByName(username);
+        if (!acc || !acc.passwordHash || !verifyPassword(password || '', acc.passwordHash)) {
+          wsSend(client, MSG.AUTH, { ok: false, msg: 'INVALID CREDENTIALS' });
+          return;
+        }
+        const token = newSessionToken();
+        await persistence.createSession(acc.deviceId, token, SESSION_TTL);
+        client.token = token;
+        client.acc = acc;
+        client.deviceId = acc.deviceId;
+        client.name = acc.name;
+        wsSend(client, MSG.AUTH, { ok: true, token, account: publicAccount(acc) });
+        break;
+      }
+      case MSG.SIGNUP: {
+        const { username, password } = m.d || {};
+        const name = String(username || '').trim();
+        if (name.length < 3 || name.length > 16) {
+          wsSend(client, MSG.AUTH, { ok: false, msg: 'USERNAME MUST BE 3-16 CHARACTERS' });
+          return;
+        }
+        if (!password || String(password).length < 6) {
+          wsSend(client, MSG.AUTH, { ok: false, msg: 'PASSWORD MUST BE AT LEAST 6 CHARACTERS' });
+          return;
+        }
+        const existing = await persistence.getAccountByName(name);
+        if (existing) {
+          wsSend(client, MSG.AUTH, { ok: false, msg: 'USERNAME TAKEN' });
+          return;
+        }
+        const deviceId = 'user-' + name.toLowerCase() + '-' + Math.random().toString(36).slice(2, 8);
+        await persistence.getOrCreate(deviceId, name);
+        const acc = await persistence.setAccountCredentials(deviceId, name, hashPassword(password));
+        const token = newSessionToken();
+        await persistence.createSession(deviceId, token, SESSION_TTL);
+        client.token = token;
+        client.acc = acc;
+        client.deviceId = acc.deviceId;
+        client.name = acc.name;
+        wsSend(client, MSG.AUTH, { ok: true, token, account: publicAccount(acc) });
+        break;
+      }
+      case MSG.SESSION: {
+        const { token } = m.d || {};
+        const sess = await persistence.getSession(token);
+        if (!sess) { wsSend(client, MSG.AUTH, { ok: false, msg: 'SESSION EXPIRED' }); return; }
+        const acc = await persistence.getOrCreate(sess.deviceId, null);
+        client.token = token;
+        client.acc = acc;
+        client.deviceId = acc.deviceId;
+        client.name = acc.name;
+        wsSend(client, MSG.AUTH, { ok: true, token, account: publicAccount(acc) });
+        break;
+      }
+      case MSG.LOGOUT: {
+        const { token } = m.d || {};
+        if (token) await persistence.deleteSession(token);
+        client.token = null;
+        wsSend(client, MSG.AUTH, { ok: true, msg: 'LOGGED OUT' });
+        break;
+      }
       case MSG.HELLO: {
         const { name, deviceId, loadout } = m.d || {};
-        const acc = persistence.getOrCreate(deviceId || 'anon-' + Math.random().toString(36).slice(2), name);
+        const acc = await persistence.getOrCreate(deviceId || 'anon-' + Math.random().toString(36).slice(2), name);
         client.id = acc.deviceId;
         client.deviceId = acc.deviceId;
         client.name = acc.name;
         client.acc = acc;
-        if (loadout) persistence.setLoadout(client.deviceId, loadout);
+        if (loadout) await persistence.setLoadout(client.deviceId, loadout);
         // Welcome/ack happens on JOIN -> match start
         break;
       }
@@ -83,7 +170,7 @@ export function createServer({ port = SERVER_PORT, server: providedServer = null
         break;
       }
       case MSG.LOADOUT: {
-        if (client.deviceId && m.d) persistence.setLoadout(client.deviceId, m.d.loadout || m.d);
+        if (client.deviceId && m.d) await persistence.setLoadout(client.deviceId, m.d.loadout || m.d);
         break;
       }
       case MSG.CHAT: {
@@ -121,8 +208,22 @@ export function createServer({ port = SERVER_PORT, server: providedServer = null
     };
   }
 
-  // game sim player-bound messages routed back to ws
-  // (Room.sendTo uses p.ws; bots have no ws)
+  // Persist a player's end-of-match progression into their account.
+  async function persistMatchResult(player, won) {
+    if (!player || !player.deviceId) return;
+    try {
+      await persistence.applyMatchResult(player.deviceId, {
+        kills: player.kills || 0,
+        deaths: player.deaths || 0,
+        assists: player.assists || 0,
+        won: !!won,
+        score: player.score || 0,
+        xp: player.totalXpGainedThisMatch || player.matchXp || 0,
+      });
+    } catch (e) {
+      console.error('[persistence] match result save failed', e.message);
+    }
+  }
 
   // heartbeat
   const heartbeatInterval = setInterval(() => {
@@ -153,6 +254,7 @@ export function createServer({ port = SERVER_PORT, server: providedServer = null
       clearInterval(tickInterval);
       clearInterval(heartbeatInterval);
       persistence.close();
+      pool?.end?.();
       if (ownsListener) {
         wss.close();
         httpServer.close();
@@ -170,6 +272,20 @@ function clampRad(v) {
   if (x < -Math.PI) x += Math.PI * 2;
   if (x > Math.PI) x -= Math.PI * 2;
   return x;
+}
+
+function publicAccount(acc) {
+  return {
+    deviceId: acc.deviceId,
+    name: acc.name,
+    username: acc.username,
+    totalXp: acc.totalXp,
+    level: levelFromXp(acc.totalXp),
+    stats: acc.stats,
+    loadout: acc.loadout,
+    unlockedWeapons: acc.unlockedWeapons,
+    prestige: acc.prestige,
+  };
 }
 
 // Allow running directly

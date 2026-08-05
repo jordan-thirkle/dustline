@@ -58,6 +58,17 @@ export const UI = {
         <button class="btn small" id="btn-settings-done">BACK</button>
       `;
       menu.appendChild(settingsSec);
+
+      // Account / login section
+      const acctSec = document.createElement('div');
+      acctSec.id = 'account-panel';
+      acctSec.className = 'panel hidden';
+      acctSec.innerHTML = `
+        <div class="panel-title">OPERATIVE ACCOUNT</div>
+        <div class="acct-body" id="acct-body"></div>
+        <button class="btn small" id="btn-acct-done">BACK</button>
+      `;
+      menu.appendChild(acctSec);
     }
 
     // Scoreboard
@@ -137,6 +148,14 @@ export const UI = {
       updates.addEventListener('click', () => this.showUpdate(this.lastUpdate || { latestVersion: '0.2.0', title: 'Field updates', summary: 'Read the latest DUSTLINE changelog.', notes: [] }));
       $('#menu')?.appendChild(updates);
     }
+    if (!$('#btn-account')) {
+      const acct = document.createElement('button');
+      acct.id = 'btn-account';
+      acct.className = 'menu-link';
+      acct.textContent = 'Sign in';
+      acct.addEventListener('click', () => this.togglePanel('account'));
+      $('#menu')?.appendChild(acct);
+    }
   },
 
   bind() {
@@ -160,6 +179,25 @@ export const UI = {
     if (btnSettings) btnSettings.addEventListener('click', () => this.togglePanel('settings'));
     const btnSettingsDone = $('#btn-settings-done');
     if (btnSettingsDone) btnSettingsDone.addEventListener('click', () => this.togglePanel('settings'));
+
+    // account / login
+    const btnAcctDone = $('#btn-acct-done');
+    if (btnAcctDone) btnAcctDone.addEventListener('click', () => this.togglePanel('account'));
+    const acctBody = $('#acct-body');
+    if (acctBody) acctBody.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t.id === 'btn-login-submit') {
+        const u = $('#acct-user')?.value.trim();
+        const p = $('#acct-pass')?.value;
+        if (u && p) this.onLogin && this.onLogin(u, p);
+      } else if (t.id === 'btn-signup-submit') {
+        const u = $('#acct-user')?.value.trim();
+        const p = $('#acct-pass')?.value;
+        if (u && p) this.onSignup && this.onSignup(u, p);
+      } else if (t.id === 'btn-logout') {
+        this.onLogout && this.onLogout();
+      }
+    });
 
     // settings inputs
     const bindRange = (id, key, fn) => {
@@ -565,9 +603,69 @@ export const UI = {
     if (notice) notice.classList.add('hidden');
   },
 
+  // ---- account / auth ----
+  account: null,        // { username, name, totalXp, level, stats, loadout, unlockedWeapons }
+  authStatus: 'guest',  // guest | authed | error
+
+  setAccount(account) {
+    this.account = account || null;
+    this.authStatus = account ? 'authed' : 'guest';
+    this.renderAccount();
+    this.renderAccountButton();
+  },
+
+  setAuthError(msg) {
+    this.authStatus = 'error';
+    const err = $('#acct-msg');
+    if (err) err.textContent = msg || 'AUTHENTICATION FAILED';
+    this.renderAccountButton();
+  },
+
+  renderAccountButton() {
+    const btn = $('#btn-account');
+    if (!btn) return;
+    btn.textContent = this.account ? `${this.account.username} · LV ${this.account.level}` : 'Sign in';
+  },
+
+  renderAccount() {
+    const body = $('#acct-body');
+    if (!body) return;
+    if (this.account) {
+      const a = this.account;
+      const s = a.stats || {};
+      const kd = s.deaths ? (s.kills / s.deaths).toFixed(2) : s.kills ? s.kills.toFixed(2) : '0.00';
+      body.innerHTML = `
+        <div class="acct-welcome">WELCOME, <b>${a.username}</b></div>
+        <div class="acct-meta">LEVEL ${a.level} · ${a.totalXp || 0} XP · ${s.games || 0} MATCHES · K/D ${kd}</div>
+        <div class="acct-row">
+          <button class="btn small" id="btn-logout">LOG OUT</button>
+        </div>
+        <div class="acct-msg" id="acct-msg"></div>
+      `;
+    } else {
+      body.innerHTML = `
+        <div class="acct-form">
+          <label>OPERATIVE ID</label>
+          <input id="acct-user" type="text" maxlength="16" autocomplete="username" placeholder="callsign">
+          <label>PASSWORD</label>
+          <input id="acct-pass" type="password" autocomplete="current-password" placeholder="••••••••">
+          <div class="acct-msg" id="acct-msg"></div>
+          <div class="acct-row">
+            <button class="btn small" id="btn-login-submit">SIGN IN</button>
+            <button class="btn small secondary" id="btn-signup-submit">CREATE ACCOUNT</button>
+          </div>
+          <div class="acct-hint">Guests play anonymously. Signing in saves your XP and loadout across redeploys.</div>
+        </div>
+      `;
+    }
+  },
+
   getLoadout() { return { ...this.loadout }; },
   getSettings() { return { ...this.settings }; },
   setSettings(s) { if (s) Object.assign(this.settings, s); },
   onChatSend: null,
+  onLogin: null,
+  onSignup: null,
+  onLogout: null,
   lockLevels: { m4: 1, pistol: 1, knife: 1, mp5: 3, shotgun: 5, ak: 8, m249: 12, sniper: 16 },
 };

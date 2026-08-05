@@ -1,5 +1,6 @@
-// DUSTLINE account persistence — JSON file store. Accounts keyed by deviceId.
-// No DB; a simple atomic-write JSON file keeps it deployable anywhere.
+// DUSTLINE account persistence — Postgres-backed when DATABASE_URL is set,
+// otherwise falls back to an atomic-write JSON file store (local dev).
+// Account shape is shared with client/progression.
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +11,8 @@ const DATA_DIR = join(__dirname, 'data');
 const FILE = join(DATA_DIR, 'accounts.json');
 
 export class Persistence {
-  constructor() {
+  constructor({ pool = null } = {}) {
+    this.pool = pool;
     this.accounts = new Map();
     this.dirty = false;
     this.saveInterval = setInterval(() => this.save(), 5000);
@@ -18,7 +20,10 @@ export class Persistence {
     this.load();
   }
 
+  isPg() { return !!this.pool; }
+
   load() {
+    if (this.isPg()) return;
     try {
       if (existsSync(FILE)) {
         const raw = readFileSync(FILE, 'utf8');
@@ -36,6 +41,7 @@ export class Persistence {
   }
 
   save() {
+    if (this.isPg()) return;
     if (!this.dirty) return;
     try {
       mkdirSync(DATA_DIR, { recursive: true });
@@ -48,7 +54,18 @@ export class Persistence {
     }
   }
 
-  getOrCreate(deviceId, name) {
+  async getOrCreate(deviceId, name) {
+    if (this.isPg()) {
+      const pg = await import('./pgstore.js');
+      let acc = await pg.getAccount(this.pool, deviceId);
+      if (!acc) {
+        acc = await pg.createAccount(this.pool, { deviceId, name });
+      } else if (name && name !== acc.name) {
+        await pg.createAccount(this.pool, { deviceId, name });
+        acc.name = name.slice(0, 16);
+      }
+      return acc;
+    }
     let acc = this.accounts.get(deviceId);
     if (!acc) {
       acc = {
@@ -67,14 +84,21 @@ export class Persistence {
     return acc;
   }
 
-  touch(deviceId) {
+  async touch(deviceId) {
+    if (this.isPg()) {
+      await import('./pgstore.js').then((m) => m.touchAccount(this.pool, deviceId));
+      return;
+    }
     const acc = this.accounts.get(deviceId);
     if (acc) { acc.lastSeen = Date.now(); this.dirty = true; }
   }
 
   // Merge end-of-match stats + xp into account. Returns updated account.
-  applyMatchResult(deviceId, { kills, deaths, assists, won, score, xp }) {
-    const acc = this.getOrCreate(deviceId, 'OPERATIVE');
+  async applyMatchResult(deviceId, { kills, deaths, assists, won, score, xp }) {
+    if (this.isPg()) {
+      return await import('./pgstore.js').then((m) => m.applyMatchResultToAccount(this.pool, deviceId, { kills, deaths, assists, won, score, xp }));
+    }
+    const acc = await this.getOrCreate(deviceId, 'OPERATIVE');
     const s = acc.stats;
     s.kills += kills; s.deaths += deaths; s.assists += assists;
     s.score += score; s.games++;
@@ -91,12 +115,73 @@ export class Persistence {
     return acc;
   }
 
-  setLoadout(deviceId, loadout) {
-    const acc = this.getOrCreate(deviceId, 'OPERATIVE');
+  async setLoadout(deviceId, loadout) {
+    if (this.isPg()) {
+      await import('./pgstore.js').then((m) => m.saveLoadout(this.pool, deviceId, loadout));
+      return null;
+    }
+    const acc = await this.getOrCreate(deviceId, 'OPERATIVE');
     if (loadout) {
       acc.loadout = { primary: loadout.primary || acc.loadout.primary, secondary: loadout.secondary || acc.loadout.secondary };
       this.dirty = true;
     }
     return acc;
+  }
+
+  // ---- auth (username/password + sessions) ----
+  async getAccountByName(username) {
+    if (this.isPg()) {
+      return await import('./pgstore.js').then((m) => m.getAccountByName(this.pool, username));
+    }
+    const lower = (username || '').toLowerCase();
+    for (const acc of this.accounts.values()) {
+      if (acc.username && acc.username.toLowerCase() === lower) return acc;
+    }
+    return null;
+  }
+
+  async setAccountCredentials(deviceId, username, passwordHash) {
+    if (this.isPg()) {
+      const pg = await import('./pgstore.js');
+      await pg.setPassword(this.pool, deviceId, passwordHash);
+      await this.pool.query('UPDATE accounts SET username = $2 WHERE device_id = $1', [deviceId, username]);
+      const acc = await pg.getAccount(this.pool, deviceId);
+      if (acc) acc.username = username;
+      return acc;
+    }
+    const acc = await this.getOrCreate(deviceId, username);
+    acc.username = username;
+    acc.passwordHash = passwordHash;
+    this.dirty = true;
+    return acc;
+  }
+
+  async createSession(deviceId, token, ttlMs) {
+    if (this.isPg()) {
+      await import('./pgstore.js').then((m) => m.createSession(this.pool, deviceId, token, ttlMs));
+      return;
+    }
+    if (!this.sessions) this.sessions = new Map();
+    this.sessions.set(token, { token, deviceId, expiresAt: Date.now() + ttlMs });
+    this.dirty = true;
+  }
+
+  async getSession(token) {
+    if (this.isPg()) {
+      return await import('./pgstore.js').then((m) => m.getSession(this.pool, token));
+    }
+    const s = this.sessions?.get(token);
+    if (s && s.expiresAt > Date.now()) return s;
+    if (s) this.sessions.delete(token);
+    return null;
+  }
+
+  async deleteSession(token) {
+    if (this.isPg()) {
+      await import('./pgstore.js').then((m) => m.deleteSession(this.pool, token));
+      return;
+    }
+    this.sessions?.delete(token);
+    this.dirty = true;
   }
 }

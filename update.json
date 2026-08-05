@@ -1,15 +1,16 @@
 {
-  "latestVersion": "0.2.0",
+  "latestVersion": "0.3.0",
   "channel": "playtest",
-  "title": "BYJTT.COM FIELD UPDATE 0.2.0",
-  "summary": "A new boot experience, five selectable modes, safer recovery, and live-service progress tracking are online.",
+  "title": "DUSTLINE FIELD UPDATE 0.3.0",
+  "summary": "Operative accounts, durable progression on Fly Postgres, and a fix for the combat trace crash.",
   "publishedAt": "2026-08-05",
   "mandatory": false,
   "notes": [
-    "Added professional byjtt.com splash and loading states.",
-    "Added retry and safe mode when field systems fail.",
-    "Added selectable TDM, Domination, Kill Confirmed, Search & Destroy, and Free For All.",
-    "Added public changelog, progress portal, and reusable AI build archive."
+    "Added operative accounts: sign up, sign in, and session restore in the menu.",
+    "Progression (XP, stats, loadouts) now persists across redeploys via Fly Postgres.",
+    "Match results are written to your account after every match.",
+    "Fixed a combat crash when a shot missed its target.",
+    "Client now runs on PCFShadowMap for the modern Three.js renderer."
   ],
-  "minClientVersion": "0.2.0"
+  "minClientVersion": "0.3.0"
 }

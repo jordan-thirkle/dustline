@@ -15,6 +15,10 @@ export const MSG = {
   JOIN: 'join',          // { code? } -> matchmake or join room by code
   LEAVE: 'leave',
   PING: 'ping',          // { t }
+  LOGIN: 'login',        // { username, password } -> { ok, token, account } or { ok:false, msg }
+  SIGNUP: 'signup',      // { username, password } -> create account
+  LOGOUT: 'logout',      // { token }
+  SESSION: 'session',    // { token } -> validate + attach
 
   // server -> client
   WELCOME: 'welcome',    // { playerId, serverTime, room, map, mode, tickRate, teams? }
@@ -32,6 +36,7 @@ export const MSG = {
   CHAT_SRV: 'chatSrv',   // { from, text, team? }
   ERROR: 'error',        // { msg }
   KICKED: 'kicked',      // { reason }
+  AUTH: 'auth',          // { ok, token?, account?, msg? }
 };
 
 export const pack = (t, d) => JSON.stringify({ t, d });

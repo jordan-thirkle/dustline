@@ -40,6 +40,8 @@ export function createGame({ container, ui, audio, fx }) {
     ping: 0,
     pings: [],
     uiReady: false,
+    account: null,      // logged-in account (from AUTH)
+    sessionToken: null, // session token for reconnects
   };
 
   game.init = () => {
@@ -65,6 +67,20 @@ export function createGame({ container, ui, audio, fx }) {
   game.setupNet = () => {
     game.net = createNet({
       url: '',
+      onAuth: (d) => {
+        if (d.ok && d.account) {
+          game.account = d.account;
+          game.sessionToken = d.token;
+          localStorage.setItem('dustline_token', d.token);
+          game.uiReady && game.ui.setAccount(d.account);
+        } else if (d.ok && !d.account) {
+          // logged out
+          game.account = null;
+          game.sessionToken = null;
+          localStorage.removeItem('dustline_token');
+          game.uiReady && game.ui.setAccount(null);
+        }
+      },
       onWelcome: (d) => {
         game.local = createLocalPlayer(game.worldColliders());
         game.local.id = d.playerId;
@@ -403,7 +419,16 @@ export function createGame({ container, ui, audio, fx }) {
     game.state = 'connecting';
     game.ui && game.ui.showLoading && game.ui.showLoading(30);
     const name = localStorage.getItem('dustline_name') || 'OPERATIVE';
-    const deviceId = localStorage.getItem('dustline_device') || (localStorage.setItem('dustline_device', Math.random().toString(36).slice(2)), localStorage.getItem('dustline_device'));
+    // When signed in, the account's deviceId is the identity — never fall back to
+    // a random local one, or the account and match identity would diverge.
+    const deviceId = game.account?.deviceId
+      || localStorage.getItem('dustline_device')
+      || (localStorage.setItem('dustline_device', Math.random().toString(36).slice(2)), localStorage.getItem('dustline_device'));
+    // carry a saved session token if we have one
+    if (!game.sessionToken) {
+      game.sessionToken = localStorage.getItem('dustline_token') || null;
+    }
+    game.net.token = game.sessionToken;
     const loadout = { primary: 'm4', secondary: 'pistol' };
     const mode = localStorage.getItem('dustline_mode') || 'tdm';
     const map = 'dustline';
@@ -414,6 +439,34 @@ export function createGame({ container, ui, audio, fx }) {
       game.ui && game.ui.showToast && game.ui.showToast('Could not reach server');
       game.state = 'menu';
     });
+  };
+
+  // ---- auth (login/signup/logout over the WS channel) ----
+  game.login = (username, password) => {
+    if (!game.net) game.setupNet();
+    game.net.authConnect().then(() => {
+      game.net.login(username, password);
+    }).catch(() => {
+      game.ui && game.ui.setAuthError('COULD NOT REACH SERVER');
+    });
+  };
+  game.signup = (username, password) => {
+    if (!game.net) game.setupNet();
+    game.net.authConnect().then(() => {
+      game.net.signup(username, password);
+    }).catch(() => {
+      game.ui && game.ui.setAuthError('COULD NOT REACH SERVER');
+    });
+  };
+  game.logout = () => {
+    if (game.net && game.net.connected) {
+      game.net.logout();
+    } else {
+      game.account = null;
+      game.sessionToken = null;
+      localStorage.removeItem('dustline_token');
+      game.ui && game.ui.setAccount(null);
+    }
   };
 
   game.dispose = () => {
