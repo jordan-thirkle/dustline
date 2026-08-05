@@ -10,7 +10,7 @@ export const WEAPONS = {
     spreadPerShot: 0.0014, spreadRecover: 8, recoil: { up: 0.012, side: 0.006, kick: 0.05 },
     moveSpread: 0.012, sprintRecover: 0.35,
     pelletCount: 1, tracer: 1,
-    viewmodel: { scale: 0.165, pos: [0.155, -0.155, -0.34], adsPos: [0, -0.148, -0.06] },
+    viewmodel: { scale: 0.175, pos: [0.155, -0.165, -0.34], adsPos: [0, -0.148, -0.06] },
     fireSound: 'ar', vol: 0.9,
   },
   ak: {

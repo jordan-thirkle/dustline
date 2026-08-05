@@ -191,14 +191,19 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   scene.add(sun);
   scene.add(sun.target);
 
-  // Hemisphere + cool fill — CRUSHED to 15% of key (critic: shadows must win)
+  // Hemisphere + cool fill — crushed global fill, but a narrow cool bounce
+  // keeps shadow INTERIORS readable (critic r5: shadows win but not voids).
   const hemi = new THREE.HemisphereLight(0xfff0da, 0x3a4a5a, 0.28);
   scene.add(hemi);
   const fill = new THREE.DirectionalLight(0x8fb8e8, 0.42);
   fill.position.set(-60, 40, -70);
   scene.add(fill);
+  // cool sky bounce that lifts only deep shadow interiors
+  const skyBounce = new THREE.DirectionalLight(0x9db8d8, 0.25);
+  skyBounce.position.set(0, 90, -20);
+  scene.add(skyBounce);
 
-  // subtle bounce light from ground
+  // subtle warm bounce light from ground
   const bounce = new THREE.DirectionalLight(0xc8b690, 0.3);
   bounce.position.set(0, -10, 0);
   scene.add(bounce);
@@ -288,6 +293,43 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
     base.position.set(o.x, 0.45, o.z);
     base.receiveShadow = true;
     worldGroup.add(base);
+
+    // Recessed windows — real geometry that catches shadow (mid-scale breakup)
+    if (o.windows && o.kind === 'building' && o.h >= 5) {
+      const windowMat = new THREE.MeshStandardMaterial({ color: 0x1c2024, roughness: 0.3, metalness: 0.1 });
+      const sillMat = new THREE.MeshStandardMaterial({ color: p[2], roughness: 0.9 });
+      const cols = Math.max(2, Math.round(o.w / 5));
+      const rows = Math.max(2, Math.round(o.h / 4));
+      const wx0 = o.x - o.w / 2 + 1.4, wz0 = o.z - o.d / 2 + 1.2;
+      const wStep = (o.w - 2.8) / cols, wH = (o.h - 3.5) / rows;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const wx = wx0 + c * wStep, wz = wz0 + r * 0; // x positions along facade
+          // front face windows (z-)
+          const win = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.2, 0.06), windowMat);
+          win.position.set(wx, 1.6 + r * wH, o.z - o.d / 2 - 0.04);
+          win.castShadow = false;
+          worldGroup.add(win);
+          // back face windows (z+)
+          const winB = win.clone();
+          winB.position.z = o.z + o.d / 2 + 0.04;
+          worldGroup.add(winB);
+          // sill (front)
+          const sill = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.06, 0.1), sillMat);
+          sill.position.set(wx, 1.45 + r * wH, o.z - o.d / 2 - 0.05);
+          worldGroup.add(sill);
+          // side face windows (x-) if wide enough
+          if (o.d > 8) {
+            const winS = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.2, 1.0), windowMat);
+            winS.position.set(o.x - o.w / 2 - 0.04, 1.6 + r * wH, wz0 + c * ((o.d - 2.4) / cols));
+            worldGroup.add(winS);
+            const winS2 = winS.clone();
+            winS2.position.x = o.x + o.w / 2 + 0.04;
+            worldGroup.add(winS2);
+          }
+        }
+      }
+    }
 
     // Roof
     if (o.roof === 'shed' && o.kind !== 'wall' && o.kind !== 'crate') {
