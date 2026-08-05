@@ -51,28 +51,42 @@ fly deploy
 
 Do not deploy the JSON account store as the production source of truth. Move `Persistence` behind a Postgres repository before public accounts, purchases, ranked state, or moderation data are enabled.
 
-## Free public playtest: Koyeb + GitHub Pages
+## Free public playtest: Cloud Run + GitHub Pages
 
-This is the lowest-cost public route for the current prototype.
+Koyeb has announced that it is joining Mistral, so it is no longer the deployment target for this project. The current free-tier route is:
 
-### Koyeb Free
+- **Cloud Run:** Dockerized same-origin Node/WebSocket game server.
+- **GitHub Pages:** static client and public portal.
 
-1. Create a Koyeb account and connect `jordan-thirkle/dustline`.
-2. Deploy from `koyeb.yaml`, or create a Web Service from the repository using `Dockerfile.server`.
-3. Use the generated Koyeb HTTPS URL as the game server URL.
-4. Confirm the service root returns JSON and that WebSocket sessions stay open during a match.
+### Google Cloud Run
 
-The free instance is a preview/test tier and may sleep or be region-limited. It is not the long-term authoritative production fleet.
+1. Create a Google Cloud project and enable billing/free-tier access.
+2. Build and deploy `Dockerfile.server`:
+
+```bash
+gcloud run deploy dustline-server \
+  --source . \
+  --dockerfile Dockerfile.server \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --timeout 3600
+```
+
+3. Copy the generated HTTPS service URL.
+4. Confirm the service root returns JSON and test a WebSocket session.
+5. Cloud Run WebSockets are request streams and are subject to the configured request timeout, so clients must reconnect. DUSTLINE already has welcome timeouts, offline recovery, and reconnect UI.
+
+Cloud Run can scale to zero and is appropriate for a public playtest. It is not yet the final authoritative FPS fleet because idle wakeups, request timeouts, and instance scaling need to be measured.
 
 ### GitHub Pages
 
 1. In GitHub repository Settings → Pages, select **GitHub Actions** as the source.
 2. In repository Settings → Secrets and variables → Actions → Variables, add:
-   - `GAME_SERVER_URL` = the Koyeb HTTPS service URL, for example `https://your-service.koyeb.app`
+   - `GAME_SERVER_URL` = the Cloud Run HTTPS URL, for example `https://dustline-server-xyz-uc.a.run.app`
 3. Run the `DUSTLINE Pages` workflow.
 4. Open the generated GitHub Pages URL and click Deploy.
 
-The workflow writes `runtime-config.js`, so the public static client automatically uses `wss://` against the Koyeb host while local development keeps using `ws://localhost:3000`.
+The workflow writes `runtime-config.js`, so the public static client automatically uses `wss://` against Cloud Run while local development keeps using `ws://localhost:3000`.
 
 ## Cloudflare Pages
 
