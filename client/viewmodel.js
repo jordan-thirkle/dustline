@@ -335,14 +335,23 @@ function buildGun(id) {
       part(new THREE.BoxGeometry(0.008, 0.014, 0.014), wornMetal, 0.024, -0.035, 0.0);
       // pistol grip
       part(box(polymer, 0.045, 0.09, 0.06), polymer, 0, -0.08, 0.06);
-      // collapsible stock
-      part(box(polymer, 0.045, 0.05, 0.2), polymer, 0, -0.005, -0.24);
-      part(box(polymer, 0.03, 0.025, 0.06), polymer, 0, 0.005, -0.32);
-      part(new THREE.CylinderGeometry(0.006, 0.006, 0.02, 6), wornMetal, 0, 0.02, -0.28, 0, 0, Math.PI / 2);
-      // sling plate
-      part(box(wornMetal, 0.016, 0.02, 0.012), wornMetal, 0.024, 0.0, -0.34);
-      // edge wear hints (subtle)
-      part(box(cerakote, 0.04, 0.01, 0.05), cerakote, 0, 0.03, -0.04);
+    // collapsible stock
+    part(box(polymer, 0.045, 0.05, 0.2), polymer, 0, -0.005, -0.24);
+    part(box(polymer, 0.03, 0.025, 0.06), polymer, 0, 0.005, -0.32);
+    part(new THREE.CylinderGeometry(0.006, 0.006, 0.02, 6), wornMetal, 0, 0.02, -0.28, 0, 0, Math.PI / 2);
+    // sling plate
+    part(box(wornMetal, 0.016, 0.02, 0.012), wornMetal, 0.024, 0.0, -0.34);
+    // edge wear hints (subtle)
+    part(box(cerakote, 0.04, 0.01, 0.05), cerakote, 0, 0.03, -0.04);
+    // support hand gripping the handguard (glove) — grounds the weapon
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0x4a4436, roughness: 0.95 });
+    const sleeveMat = new THREE.MeshStandardMaterial({ color: 0x6b6350, roughness: 0.9 });
+    part(new THREE.SphereGeometry(0.038, 8, 6), gloveMat, 0.052, -0.01, 0.1);
+    part(new THREE.BoxGeometry(0.05, 0.034, 0.05), gloveMat, 0.055, -0.035, 0.1);
+    // thumb over the handguard
+    part(new THREE.BoxGeometry(0.028, 0.024, 0.06), gloveMat, 0.035, 0.03, 0.11);
+    // sleeve leading in from the left edge
+    part(new THREE.CylinderGeometry(0.045, 0.04, 0.16, 8), sleeveMat, 0.09, -0.01, 0.06, 0, 0, -0.35);
     }
   }
   g.userData.muzzle = new THREE.Object3D();
