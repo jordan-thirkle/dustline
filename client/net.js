@@ -21,7 +21,11 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
           reject(new Error('MATCH WELCOME TIMEOUT'));
         }, 15000);
         const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-        const ws = new WebSocket(`${proto}://${location.hostname}:${SERVER_PORT}`);
+        const localDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        const endpoint = localDev && location.port === '4173'
+          ? `${proto}://${location.hostname}:${SERVER_PORT}`
+          : `${proto}://${location.host}`;
+        const ws = new WebSocket(endpoint);
         this.ws = ws;
         onStatus && onStatus('connecting');
         ws.onopen = () => {

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: dustline-playtest
+    runtime: docker
+    dockerfilePath: ./Dockerfile.server
+    dockerContext: .
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
