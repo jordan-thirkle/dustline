@@ -13,8 +13,9 @@ export class Persistence {
   constructor() {
     this.accounts = new Map();
     this.dirty = false;
+    this.saveInterval = setInterval(() => this.save(), 5000);
+    this.saveInterval.unref?.();
     this.load();
-    setInterval(() => this.save(), 5000);
   }
 
   load() {
@@ -27,6 +28,11 @@ export class Persistence {
     } catch (e) {
       console.error('[persistence] load failed', e.message);
     }
+  }
+
+  close() {
+    clearInterval(this.saveInterval);
+    this.save();
   }
 
   save() {

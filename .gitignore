@@ -6,3 +6,4 @@ shots/*.png
 shots/.chromeprofile/
 !shots/.gitkeep
 .env
+server/data/accounts.json

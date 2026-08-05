@@ -124,7 +124,7 @@ export function createServer({ port = SERVER_PORT } = {}) {
   // (Room.sendTo uses p.ws; bots have no ws)
 
   // heartbeat
-  setInterval(() => {
+  const heartbeatInterval = setInterval(() => {
     for (const [ws, client] of clients) {
       if (!ws.isAlive) { ws.terminate(); clients.delete(ws); continue; }
       ws.isAlive = false;
@@ -132,6 +132,7 @@ export function createServer({ port = SERVER_PORT } = {}) {
       client.lastPing = Date.now();
     }
   }, PING_INTERVAL);
+  heartbeatInterval.unref?.();
 
   // main tick loop
   const tickInterval = setInterval(() => {
@@ -147,6 +148,8 @@ export function createServer({ port = SERVER_PORT } = {}) {
     httpServer, wss, registry, persistence,
     close() {
       clearInterval(tickInterval);
+      clearInterval(heartbeatInterval);
+      persistence.close();
       wss.close();
       httpServer.close();
     },
