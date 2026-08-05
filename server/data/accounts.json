@@ -166,5 +166,33 @@
     ],
     "prestige": 0,
     "lastSeen": 1785909615278
+  },
+  "3wb3yvh6gaf": {
+    "deviceId": "3wb3yvh6gaf",
+    "name": "OPERATIVE",
+    "totalXp": 0,
+    "stats": {
+      "kills": 0,
+      "deaths": 0,
+      "assists": 0,
+      "headshots": 0,
+      "wins": 0,
+      "losses": 0,
+      "games": 0,
+      "score": 0,
+      "timePlayed": 0,
+      "bestStreak": 0
+    },
+    "loadout": {
+      "primary": "m4",
+      "secondary": "pistol"
+    },
+    "unlockedWeapons": [
+      "m4",
+      "pistol",
+      "knife"
+    ],
+    "prestige": 0,
+    "lastSeen": 1785917079094
   }
 }
