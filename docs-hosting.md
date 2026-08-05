@@ -51,9 +51,32 @@ fly deploy
 
 Do not deploy the JSON account store as the production source of truth. Move `Persistence` behind a Postgres repository before public accounts, purchases, ranked state, or moderation data are enabled.
 
+## Free public playtest: Koyeb + GitHub Pages
+
+This is the lowest-cost public route for the current prototype.
+
+### Koyeb Free
+
+1. Create a Koyeb account and connect `jordan-thirkle/dustline`.
+2. Deploy from `koyeb.yaml`, or create a Web Service from the repository using `Dockerfile.server`.
+3. Use the generated Koyeb HTTPS URL as the game server URL.
+4. Confirm the service root returns JSON and that WebSocket sessions stay open during a match.
+
+The free instance is a preview/test tier and may sleep or be region-limited. It is not the long-term authoritative production fleet.
+
+### GitHub Pages
+
+1. In GitHub repository Settings → Pages, select **GitHub Actions** as the source.
+2. In repository Settings → Secrets and variables → Actions → Variables, add:
+   - `GAME_SERVER_URL` = the Koyeb HTTPS service URL, for example `https://your-service.koyeb.app`
+3. Run the `DUSTLINE Pages` workflow.
+4. Open the generated GitHub Pages URL and click Deploy.
+
+The workflow writes `runtime-config.js`, so the public static client automatically uses `wss://` against the Koyeb host while local development keeps using `ws://localhost:3000`.
+
 ## Cloudflare Pages
 
-Deploy the repository root as a static site. The current client uses an import map and does not need a build step. Configure the production WebSocket endpoint through a runtime configuration module before publishing a public client; local development currently targets the same host on port `3000`.
+The same static deployment can later move to Cloudflare Pages. Keep the `GAME_SERVER_URL` runtime configuration pattern and point it at the regional realtime fleet.
 
 ## Scaling milestones
 
