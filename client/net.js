@@ -20,11 +20,14 @@ export function createNet({ url, onWelcome, onState, onEvent, onKillfeed, onScor
           this.ws?.close();
           reject(new Error('MATCH WELCOME TIMEOUT'));
         }, 15000);
+        const configured = globalThis.DUSTLINE_CONFIG?.gameServerUrl?.trim();
         const proto = location.protocol === 'https:' ? 'wss' : 'ws';
         const localDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        const endpoint = localDev && location.port === '4173'
-          ? `${proto}://${location.hostname}:${SERVER_PORT}`
-          : `${proto}://${location.host}`;
+        const endpoint = configured
+          ? configured.replace(/^http/, 'ws').replace(/\/$/, '')
+          : localDev && location.port === '4173'
+            ? `${proto}://${location.hostname}:${SERVER_PORT}`
+            : `${proto}://${location.host}`;
         const ws = new WebSocket(endpoint);
         this.ws = ws;
         onStatus && onStatus('connecting');
