@@ -226,26 +226,34 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   ground.receiveShadow = true;
   worldGroup.add(ground);
 
-  // Contact shadows — footprint-aligned soft rectangles (not oval decals),
-  // darker and tighter at the base, fading with distance from the object.
-  // Directionally biased along the sun so they read as projected occlusion.
+  // Contact shadows — dual-layer: a TIGHT dark core at the exact footprint
+  // (locks the object to the ground) + a soft directional wedge that fades
+  // out along the shadow side (critic r10 fix #2).
   const sunDir = new THREE.Vector3(sun.position.x, 0, sun.position.z).normalize();
   const dirtDecals = new THREE.Group();
   map.objects.forEach((o) => {
     if (o.kind === 'building') return; // buildings get real shadow maps
-    const sw = o.w * 1.25 + 0.8, sd = o.d * 1.25 + 0.8;
-    // tight soft shadow under the footprint, offset toward the shadow side
-    const shadow = new THREE.Mesh(
-      new THREE.PlaneGeometry(sw, sd),
-      new THREE.MeshBasicMaterial({ color: 0x070706, transparent: true, opacity: 0.55, depthWrite: false })
+    // TIGHT CONTACT CORE — sharp, dark, exactly at the footprint
+    const core = new THREE.Mesh(
+      new THREE.PlaneGeometry(o.w + 0.15, o.d + 0.15),
+      new THREE.MeshBasicMaterial({ color: 0x050504, transparent: true, opacity: 0.75, depthWrite: false })
     );
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.set(o.x + sunDir.x * 0.5, 0.045, o.z + sunDir.z * 0.5);
-    dirtDecals.add(shadow);
+    core.rotation.x = -Math.PI / 2;
+    core.position.set(o.x, 0.05, o.z);
+    dirtDecals.add(core);
+    // SOFT DIRECTIONAL WEDGE — offset along sun, fading (projected occlusion)
+    const sw = o.w * 1.35 + 0.9, sd = o.d * 1.35 + 0.9;
+    const wedge = new THREE.Mesh(
+      new THREE.PlaneGeometry(sw, sd),
+      new THREE.MeshBasicMaterial({ color: 0x0a0a08, transparent: true, opacity: 0.4, depthWrite: false })
+    );
+    wedge.rotation.x = -Math.PI / 2;
+    wedge.position.set(o.x + sunDir.x * 0.9, 0.04, o.z + sunDir.z * 0.9);
+    dirtDecals.add(wedge);
     // dirt stain ring around base
     const decal = new THREE.Mesh(
       new THREE.PlaneGeometry(o.w + 1.4, o.d + 1.4),
-      new THREE.MeshBasicMaterial({ color: 0x4c4436, transparent: true, opacity: 0.16, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0x4c4436, transparent: true, opacity: 0.14, depthWrite: false })
     );
     decal.rotation.x = -Math.PI / 2;
     decal.position.set(o.x, 0.02, o.z);
@@ -253,20 +261,26 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   });
   worldGroup.add(dirtDecals);
 
-  // Building base AO — directional: tighter on the sun side, wider on the
-  // shadow side, so it reads as occlusion, not a centered stamp.
+  // Building base AO — tight contact line + directional projection.
   map.objects.forEach((o) => {
-    const bandW = o.w + 2.4, bandD = o.d + 2.4;
+    // tight dark core hugging the footprint
+    const core = new THREE.Mesh(
+      new THREE.PlaneGeometry(o.w + 0.3, o.d + 0.3),
+      new THREE.MeshBasicMaterial({ color: 0x080807, transparent: true, opacity: 0.8, depthWrite: false })
+    );
+    core.rotation.x = -Math.PI / 2;
+    core.position.set(o.x, 0.05, o.z);
+    dirtDecals.add(core);
+    // directional projection away from sun
+    const bandW = o.w + 2.6, bandD = o.d + 2.6;
     const ao = new THREE.Mesh(
       new THREE.PlaneGeometry(bandW, bandD),
-      new THREE.MeshBasicMaterial({ color: 0x0b0b09, transparent: true, opacity: 0.6, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0x0b0b09, transparent: true, opacity: 0.5, depthWrite: false })
     );
     ao.rotation.x = -Math.PI / 2;
-    // offset base AO toward the shadow side of each structure
-    ao.position.set(o.x + sunDir.x * 1.4, 0.05, o.z + sunDir.z * 1.4);
-    // scale it longer along the sun axis for a projected feel
-    ao.scale.x = 1 + Math.abs(sunDir.x) * 0.5;
-    ao.scale.z = 1 + Math.abs(sunDir.z) * 0.5;
+    ao.position.set(o.x + sunDir.x * 1.8, 0.04, o.z + sunDir.z * 1.8);
+    ao.scale.x = 1 + Math.abs(sunDir.x) * 0.6;
+    ao.scale.z = 1 + Math.abs(sunDir.z) * 0.6;
     dirtDecals.add(ao);
   });
 
