@@ -8,7 +8,10 @@
     "dev": "python3 -m http.server 4173",
     "serve": "python3 -m http.server 4173",
     "shot": "node tools/shot.js",
-    "qa": "node tools/shot.js --qa"
+    "qa": "node tools/shot.js --qa",
+    "check": "for f in server/*.js shared/*.js client/*.js src/*.js tools/*.js; do node --check \"$f\"; done",
+    "test:modes": "node tools/test-modes.js",
+    "qa:profile": "node tools/qa-profile.js"
   },
   "dependencies": {
     "three": "0.185.1",
