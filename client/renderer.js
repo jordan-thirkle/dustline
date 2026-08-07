@@ -176,8 +176,8 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   scene.fog = new THREE.Fog(light.fog[0], light.fog[1], light.fog[2], light.fogNear * 0.55, light.fogFar);
   scene.background = new THREE.Color(light.sky[0], light.sky[1], light.sky[2]);
 
-  // Sun — authoritative low-angle key: hard-ish shadows, warm, strong
-  const sun = new THREE.DirectionalLight(0xffe0b8, 4.6);
+  // Sun — authoritative low-angle key: softened penumbra, warm, strong but not blown
+  const sun = new THREE.DirectionalLight(0xffe0b8, 3.0);
   sun.position.set(38, 48, 16);
   sun.castShadow = quality.shadows;
   if (quality.shadows) {
@@ -188,16 +188,16 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
     sun.shadow.camera.near = 10; sun.shadow.camera.far = 280;
     sun.shadow.bias = -0.0002;
     sun.shadow.normalBias = 0.008;
-    sun.shadow.radius = 2;   // tighter = harder edge = more authority
+    sun.shadow.radius = 7;   // penumbra: shadows soften 2-3px at the edge, no razor lines
   }
   scene.add(sun);
   scene.add(sun.target);
 
   // Hemisphere + cool fill — crushed global fill, but a narrow cool bounce
   // keeps shadow INTERIORS readable (critic r5: shadows win but not voids).
-  const hemi = new THREE.HemisphereLight(0xfff0da, 0x3a4a5a, 0.28);
+  const hemi = new THREE.HemisphereLight(0xfff0da, 0x3a4a5a, 0.32);
   scene.add(hemi);
-  const fill = new THREE.DirectionalLight(0x8fb8e8, 0.42);
+  const fill = new THREE.DirectionalLight(0x8fb8e8, 0.2);
   fill.position.set(-60, 40, -70);
   scene.add(fill);
   // cool sky bounce that lifts ONLY the deepest shadow interiors — must stay
@@ -323,22 +323,24 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   worldGroup.add(shadowGroup);
 
   // TIGHT contact cores (separate from cast — narrow, irregular, attached)
+  // Critic: props floated in market; cores need to be strong enough that every
+  // object shows a dark seam where it touches the ground.
   const dirtDecals = new THREE.Group();
   map.objects.forEach((o) => {
     if (o.kind === 'building') return;
     const footprint = o.w * o.d;
-    const coreOp = clamp(0.3 + footprint / 50, 0.3, 0.5);
+    const coreOp = clamp(0.42 + footprint / 40, 0.42, 0.62);
     const core = new THREE.Mesh(
-      new THREE.PlaneGeometry(o.w + 0.08, o.d + 0.08),
-      new THREE.MeshBasicMaterial({ color: 0x0c0b09, transparent: true, opacity: coreOp, depthWrite: false })
+      new THREE.PlaneGeometry(o.w + 0.16, o.d + 0.16),
+      new THREE.MeshBasicMaterial({ color: 0x0a0908, transparent: true, opacity: coreOp, depthWrite: false })
     );
     core.rotation.x = -Math.PI / 2;
     core.position.set(o.x, 0.05, o.z);
     dirtDecals.add(core);
-    // dirt stain ring around base
+    // dirt stain ring around base — stronger so the seam reads even in shadow
     const decal = new THREE.Mesh(
-      new THREE.PlaneGeometry(o.w + 1.2, o.d + 1.2),
-      new THREE.MeshBasicMaterial({ color: 0x4c4436, transparent: true, opacity: 0.1, depthWrite: false })
+      new THREE.PlaneGeometry(o.w + 1.6, o.d + 1.6),
+      new THREE.MeshBasicMaterial({ color: 0x4c4436, transparent: true, opacity: 0.16, depthWrite: false })
     );
     decal.rotation.x = -Math.PI / 2;
     decal.position.set(o.x, 0.02, o.z);
@@ -348,8 +350,8 @@ export function createWorld(renderer, scene, mapId = 'dustline', quality = QUALI
   map.objects.forEach((o) => {
     if (o.kind !== 'building') return;
     const core = new THREE.Mesh(
-      new THREE.PlaneGeometry(o.w + 0.4, o.d + 0.4),
-      new THREE.MeshBasicMaterial({ color: 0x0c0b09, transparent: true, opacity: 0.5, depthWrite: false })
+      new THREE.PlaneGeometry(o.w + 0.5, o.d + 0.5),
+      new THREE.MeshBasicMaterial({ color: 0x0c0b09, transparent: true, opacity: 0.6, depthWrite: false })
     );
     core.rotation.x = -Math.PI / 2;
     core.position.set(o.x, 0.05, o.z);

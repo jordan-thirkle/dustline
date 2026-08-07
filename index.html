@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="DUSTLINE — a sun-baked military skirmish FPS. Built with Three.js via the Gauntlet Loop." />
   <title>DUSTLINE — HOLD THE LINE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="/runtime-config.js"></script>
   <script type="importmap">
     { "imports": { "three": "/vendor/three.module.js" } }
@@ -17,10 +20,12 @@
       --hud-muted: rgba(214, 198, 168, 0.55);
       --warn: #c2452c;
       --good: #7fae6a;
+      --font-title: "Black Ops One", "Impact", "Helvetica Neue", Arial, sans-serif;
+      --font-ui: "Rajdhani", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0c0a; }
-    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #d6c6a8; }
+    body { font-family: var(--font-ui); color: #d6c6a8; letter-spacing: 0.02em; }
     #app { position: fixed; inset: 0; }
     canvas { display: block; }
     .hidden { display: none !important; }
@@ -42,7 +47,7 @@
     #loading .publisher-mark::after { content: "J"; transform: rotate(-45deg); color: var(--hud-line); font-size: 11px; font-weight: 800; }
     #loading .publisher b { color: var(--hud-line); font-weight: 800; }
     #loading .logo-lockup { position: relative; display: inline-block; }
-    #loading .logo { font-size: clamp(44px, 7vw, 78px); line-height: .85; font-weight: 900; letter-spacing: clamp(8px, 1.7vw, 17px); padding-left: 17px; color: #e4d5b4; text-shadow: 0 8px 35px rgba(0,0,0,.9); }
+    #loading .logo { font-family: var(--font-title); font-size: clamp(44px, 7vw, 78px); line-height: .9; font-weight: 400; letter-spacing: clamp(6px, 1.2vw, 12px); padding-left: 12px; color: #e4d5b4; text-shadow: 0 8px 35px rgba(0,0,0,.9); }
     #loading .logo::after { content: ""; position: absolute; left: 10%; right: 0; bottom: -10px; height: 3px; background: linear-gradient(90deg, #806949 0 18%, #d6c6a8 18% 72%, transparent 72%); transform: skewX(-28deg); opacity: .85; }
     #loading .rule { width: 100%; height: 1px; margin: 27px 0 15px; background: linear-gradient(90deg, transparent, rgba(214,198,168,.7), transparent); }
     #loading .sub { letter-spacing: 7px; font-size: 11px; color: rgba(214,198,168,.6); text-transform: uppercase; }
@@ -69,7 +74,7 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
       cursor: default; user-select: none;
     }
-    #menu .title { font-size: 72px; font-weight: 800; letter-spacing: 22px; color: #e4d5b4; text-shadow: 0 6px 40px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.9); }
+    #menu .title { font-family: var(--font-title); font-size: 72px; font-weight: 400; letter-spacing: 14px; color: #e4d5b4; text-shadow: 0 6px 40px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.9); }
     #menu .tag { letter-spacing: 8px; font-size: 13px; color: var(--hud-muted); text-transform: uppercase; }
     #menu .btn {
       font: inherit; letter-spacing: 3px; text-transform: uppercase; font-size: 15px;
@@ -163,7 +168,7 @@
       align-items: center; justify-content: center; gap: 14px; background: rgba(13,12,10,0.88);
       z-index: 55;
     }
-    .panel-title { font-size: 28px; font-weight: 800; letter-spacing: 8px; color: var(--hud-line); margin-bottom: 10px; }
+    .panel-title { font-family: var(--font-title); font-size: 26px; font-weight: 400; letter-spacing: 5px; color: var(--hud-line); margin-bottom: 10px; }
     .loadout-cols { display: flex; gap: 40px; }
     .col-head { font-size: 11px; letter-spacing: 3px; color: var(--hud-muted); text-transform: uppercase; margin-bottom: 8px; }
     .wgrid { display: flex; flex-direction: column; gap: 8px; min-width: 200px; }

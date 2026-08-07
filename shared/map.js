@@ -9,7 +9,7 @@ export const MAPS_DATA = {
     id: 'dustline',
     name: 'DUSTLINE',
     bounds: [-62, -62, 62, 62],
-    light: { sky: [0.72, 0.68, 0.6], sun: [1.0, 0.9, 0.75], sunIntensity: 1.35, ambient: [0.5, 0.47, 0.4], fog: [0.78, 0.74, 0.66], fogNear: 70, fogFar: 190 },
+    light: { sky: [0.62, 0.56, 0.47], sun: [1.0, 0.9, 0.75], sunIntensity: 1.35, ambient: [0.5, 0.47, 0.4], fog: [0.66, 0.6, 0.51], fogNear: 70, fogFar: 190 },
     dust: 0.35, // heat-haze / dust density
     objects: [
       // ---- perimeter buildings ----

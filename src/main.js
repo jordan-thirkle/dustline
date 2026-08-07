@@ -105,7 +105,11 @@ async function boot() {
       gun: { pos: [0, 1.7, -2], target: [0, 1.5, 4] },
     };
     const camera = CAMS[cam] || CAMS.plaza;
-    $('#hud')?.classList.add('hidden');
+    // Hide ALL overlays so screenshots show clean world frames (HUD + streakbar
+    // + killfeed + minimap + scoreboard all live outside #hud).
+    ['hud', 'streakbar', 'killfeed', 'minimap', 'scoreboard', 'chat', 'scorescreen'].forEach((id) => {
+      document.getElementById(id)?.classList.add('hidden');
+    });
     game.state = 'match';
     game.local = createLocalPlayer(game.worldColliders());
     game.local.pos = [...camera.pos];

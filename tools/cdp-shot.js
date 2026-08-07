@@ -2,23 +2,43 @@
 // Loads the game in headless Chrome, captures console errors, saves a PNG.
 // Usage: node tools/cdp-shot.js [--cam=plaza|alley|market|tower|gun|hud] [--out=path]
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+// Resolve a Chromium binary across platforms. Prefer CHROME_PATH, then common
+// Windows/macOS/Linux locations.
+const CHROME_CANDIDATES = [
+  process.env.CHROME_PATH,
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+].filter(Boolean);
+const CHROME = CHROME_CANDIDATES.find((c) => existsSync(c));
 const PORT = 9222;
 const PROFILE = resolve(ROOT, 'shots/.chromeprofile');
+// Wipe the profile every run so captures always reflect current code (no stale
+// HTTP cache serving an old main.js). Retry a few times: a concurrent capture
+// may still be shutting down its Chrome and holding the profile lock.
+const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
+for (let attempt = 0; attempt < 5; attempt++) {
+  try { rmSync(PROFILE, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); break; }
+  catch (e) { if (attempt === 4) throw e; sleepMs(500); }
+}
 const shots = resolve(ROOT, 'shots');
 mkdirSync(shots, { recursive: true });
 
 const args = process.argv.slice(2);
 const cam = args.find(a => a.startsWith('--cam='))?.split('=')[1] || 'plaza';
 const outArg = args.find(a => a.startsWith('--out='))?.split('=')[1];
-const waitMs = parseInt(args.find(a => a.startsWith('--wait='))?.split('=')[1] || '5000', 10);
+const waitMs = parseInt(args.find(a => a.startsWith('--wait='))?.split('=')[1] || '25000', 10);
 const url = `http://localhost:4173/?cam=${cam}`;
 
-if (!existsSync(CHROME)) { console.error('Chrome not found at', CHROME); process.exit(1); }
+if (!CHROME) { console.error('No Chromium found. Set CHROME_PATH.'); process.exit(1); }
 
 const chrome = spawn(CHROME, [
   '--headless=new',
@@ -77,7 +97,17 @@ async function main() {
   await send('Runtime.enable');
   await send('Page.enable');
   await send('Page.navigate', { url });
-  await sleep(waitMs);
+
+  // Wait for the game to reach 'match' AND the boot overlay to be removed, so the
+  // screenshot captures a clean world frame (loading fades ~350ms after ready).
+  const readyExpr = `(() => { const g = window.__DUSTLINE__; return g && g.state === 'match' && !document.getElementById('loading') && !!document.querySelector('canvas'); })()`;
+  let ready = false;
+  for (let i = 0; i < Math.ceil(waitMs / 500); i++) {
+    const r = await send('Runtime.evaluate', { expression: readyExpr, returnByValue: true });
+    if (r.result?.result?.value) { ready = true; break; }
+    await sleep(500);
+  }
+  await sleep(600); // let any last frame settle
 
   // game state
   const stateRes = await send('Runtime.evaluate', {

@@ -12,7 +12,21 @@ const STOCK = { rough: 0.85, metal: 0.15 };
 export function createViewmodel(scene, camera) {
   const root = new THREE.Group();
   root.name = 'viewmodel';
-  scene.add(root);
+  // Attach to the camera so the weapon follows the view in every frame
+  // (it must move with the camera, not sit at world origin). Do NOT add the
+  // camera to the scene — that can break the render loop for the view camera.
+  camera.add(root);
+
+  // Dedicated viewmodel lighting so the weapon reads in every frame regardless
+  // of world sun direction. Warm key front-left, cool rim back-right, faint
+  // under-fill so the receiver never falls to a dark slab.
+  const vmKey = new THREE.DirectionalLight(0xffe8c8, 1.15);
+  vmKey.position.set(-0.6, 0.4, 0.8);
+  const vmRim = new THREE.DirectionalLight(0x9db8d8, 0.55);
+  vmRim.position.set(0.7, 0.3, -0.9);
+  const vmFill = new THREE.DirectionalLight(0xffffff, 0.28);
+  vmFill.position.set(0, -0.5, 0.4);
+  root.add(vmKey, vmRim, vmFill);
 
   const vm = {
     root,
