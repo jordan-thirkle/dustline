@@ -2,15 +2,18 @@
 // Loads the game in headless Chrome, captures console errors, saves a PNG.
 // Usage: node tools/cdp-shot.js [--cam=plaza|alley|market|tower|gun|hud] [--out=path]
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 9222;
-const PROFILE = resolve(ROOT, 'shots/.chromeprofile');
+// Headless profile lives in the OS temp dir so it can never be committed.
+const PROFILE = resolve(tmpdir(), 'dustline-chrome-profile');
 const shots = resolve(ROOT, 'shots');
 mkdirSync(shots, { recursive: true });
+rmSync(PROFILE, { recursive: true, force: true });
 
 const args = process.argv.slice(2);
 const cam = args.find(a => a.startsWith('--cam='))?.split('=')[1] || 'plaza';
