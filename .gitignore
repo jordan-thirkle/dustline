@@ -3,7 +3,8 @@ dist/
 .DS_Store
 *.log
 shots/*.png
-shots/.chromeprofile/
+shots/.c*/
+shots/.chromeprofile*/
 !shots/.gitkeep
 .env
 server/data/accounts.json
